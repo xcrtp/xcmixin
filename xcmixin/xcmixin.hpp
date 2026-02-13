@@ -4,14 +4,20 @@ namespace xcmixin {
 #define METHOD                              \
     template <typename, typename, typename> \
     class
-
+template <typename Derived>
 struct EmptyBase {
-    template <typename Derived = void>
-    static constexpr bool valid_class() {
+    template <typename D = Derived>
+    constexpr static bool valid_class() {
         return true;
     }
 };
-
+template <typename meta>
+struct method_validator {
+    template <typename MethodClass, typename Derived>
+    static consteval bool valid_method() {
+        return true;
+    }
+};
 namespace details {
 template <typename T>
 struct return_type {
@@ -61,9 +67,15 @@ using impl_methods = deref_type<impl_methods_helper<Derived, methods...>>;
 template <typename Derived, METHOD method>
 struct impl_methods_helper<Derived, method> {
     struct type;
-    using base = method<EmptyBase, Derived, meta_method<method>>;
+    using base = method<EmptyBase<Derived>, Derived, meta_method<method>>;
     struct type : base {
         using method_recorder = method_recorder<method>;
+        template <typename D = Derived>
+        constexpr static bool valid_class() {
+            return ::xcmixin::method_validator<meta_method<method>>::
+                       template valid_method<base, Derived>() &&
+                   base::valid_class();
+        }
     };
 };
 template <typename Derived, METHOD method, METHOD... methods>
@@ -72,7 +84,14 @@ struct impl_methods_helper<Derived, method, methods...> {
     using base = method<deref_type<impl_methods_helper<Derived, methods...>>,
                         Derived, meta_method<method>>;
     struct type : base {
-        using method_recorder = method_recorder<method, methods...>;
+        using method_recorder =
+            base::method_recorder::template push_front<method>;
+        template <typename D = Derived>
+        constexpr static bool valid_class() {
+            return ::xcmixin::method_validator<meta_method<method>>::
+                       template valid_method<base, Derived>() &&
+                   base::valid_class();
+        }
     };
 };
 
@@ -149,8 +168,9 @@ using details::has_method;
 using details::impl_methods;
 using details::impl_methods_recorders;
 using details::is_impl_method;
-using details::overload;
+using details::meta_method;
 using details::method_recorder;
+using details::overload;
 using details::recorder_concat;
 
 }  // namespace xcmixin
@@ -160,6 +180,21 @@ using details::recorder_concat;
     using Self = std::decay_t<Derived>; \
     using ConstSelf = const Self;       \
     using MethodClass = meta::template method<Base, Self, meta>;
+#define XCMIXIN_METHOD_REQUIRE(name, ...)                   \
+    namespace xcmixin {                                     \
+    template <>                                             \
+    struct method_validator<::xcmixin::meta_method<name>> { \
+        template <typename MethodClass, typename Derived>   \
+        static consteval bool valid_method() {              \
+            __VA_ARGS__                                     \
+            return true;                                    \
+        }                                                   \
+    };                                                      \
+    }
+
+#define XCMIXIN_PRE_DECL(name)                                \
+    template <typename Base, typename Derived, typename meta> \
+    struct name;
 #define XCMIXIN_METHOD_DEF_BEGIN(name)                        \
     template <typename Base, typename Derived, typename meta> \
     struct name : Base {                                      \
@@ -170,21 +205,7 @@ using details::recorder_concat;
 #define XCMIXIN_METHOD_DECLARE(name) \
     XCMIXIN_METHOD_DEF_BEGIN(name)   \
     }
-#ifdef __GNUC__
-#define XCMIXIN_IMPL_METHOD_BEGIN(name, ext_template_params...)  \
-    template <typename Base, ext_template_params, typename meta> \
-        struct name < Base,
-#define XCMIXIN_IMPL_METHOD_BEGIN_WITH_REQUIRES(name, require_statement, \
-                                                ext_template_params...)  \
-    template <typename Base, ext_template_params, typename meta>         \
-        requires(require_statement)                                      \
-    struct name < Base,
-#define XCMIXIN_IMPL_METHOD_FOR(cls...)                              \
-    cls, meta > : Base {                                             \
-        using MethodClass = meta::template method<Base, Self, meta>; \
-        using Self = cls;                                            \
-        using ConstSelf = const std::remove_const_t<Self>;
-#else
+
 #define XCMIXIN_IMPL_METHOD_BEGIN(name, ...)             \
     template <typename Base, __VA_ARGS__, typename meta> \
         struct name < Base,
@@ -197,12 +218,20 @@ using details::recorder_concat;
         using Self = __VA_ARGS__;                          \
         using ConstSelf = const std::remove_const_t<Self>; \
         using MethodClass = meta::template method<Base, Self, meta>;
-#endif
-#define XCMIXIN_METHOD_REQUIRES(...)                       \
-    template <typename DerivedClass = Self>                \
-    constexpr static bool valid_class() {                  \
-        __VA_ARGS__                                        \
-        return Base::template valid_class<DerivedClass>(); \
+#define XCMIXIN_IMPL_METHOD_EXTEND_FOR(ext_method, ...)         \
+    __VA_ARGS__, meta > : ext_method<Base, __VA_ARGS__, meta> { \
+        using Self = __VA_ARGS__;                               \
+        using ConstSelf = const std::remove_const_t<Self>;      \
+        using base = ext_method<Base, Self, meta>;              \
+        using method_recorder =                                 \
+            base::method_recorder::template push_front<ext_method>; \
+        using MethodClass = meta::template method<base, Self, meta>;
+
+#define XCMIXIN_METHOD_REQUIRES(...)                  \
+    template <typename Derived = Self>                \
+    constexpr static bool valid_class() {             \
+        __VA_ARGS__                                   \
+        return Base::template valid_class<Derived>(); \
     }
 #define XCMIXIN_IMPL_METHOD_END() \
     }                             \
@@ -235,8 +264,8 @@ using details::recorder_concat;
                   "Derived must be derived from " #method)
 // Require the method to be not shadowed, check whether the method is not
 // shadowed
-#define xcmixin_no_shadow(name, ...)                             \
-    static_assert(::xcmixin::overload<__VA_ARGS__>::same( \
-                      &MethodClass::name, &DerivedClass::name),  \
+#define xcmixin_no_hiding(name, ...)                                         \
+    static_assert(::xcmixin::overload<__VA_ARGS__>::same(&MethodClass::name, \
+                                                         &Derived::name),    \
                   "method " #name " is shadowed ")
 #undef METHOD
