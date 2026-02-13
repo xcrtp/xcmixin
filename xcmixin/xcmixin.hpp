@@ -244,16 +244,6 @@ using details::recorder_concat;
                   " must be incomplete before impl, you must define methods " \
                   "before define class")
 
-#define XCMIXIN_FACTORY_DECLARE(name) XCMIXIN_METHOD_DECLARE(name)
-#define XCMIXIN_FACTORY_DEF_BEGIN(name) XCMIXIN_METHOD_DEF_BEGIN(name)
-#define XCMIXIN_FACTORY_DEF_END() XCMIXIN_METHOD_DEF_END()
-#define XCMIXIN_IMPL_FACTORY_BEGIN(name, ...) \
-    XCMIXIN_IMPL_METHOD_BEGIN(name, __VA_ARGS__)
-#define XCMIXIN_IMPL_FACTORY_BEGIN_WITH_REQUIRES(name, require_statement, ...) \
-    XCMIXIN_IMPL_METHOD_BEGIN_WITH_REQUIRES(name, require_statement,           \
-                                            __VA_ARGS__)
-#define XCMIXIN_IMPL_FACTORY_FOR(...) XCMIXIN_IMPL_METHOD_FOR(__VA_ARGS__)
-#define XCMIXIN_IMPL_FACTORY_END() XCMIXIN_IMPL_METHOD_END()
 #define xcmixin_self (*static_cast<Self*>(this))
 #define xcmixin_const_self (*static_cast<ConstSelf*>(this))
 // Initialize the class, check whether the class is valid
