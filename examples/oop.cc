@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "xcmixin/xcmixin.hpp"
 
@@ -35,7 +36,14 @@ class MyClass
 XCMIXIN_IMPL_METHOD_BEGIN(name_method, typename B)
 XCMIXIN_IMPL_METHOD_FOR(MyClass<B>)
 std::string name() { return "MyClass"; }
-XCMIXIN_METHOD_REQUIRES(xcmixin_no_shadow(name);)
+std::string name(int) { return "MyClass"; }
+std::string name(int) const { return "MyClass"; }
+XCMIXIN_METHOD_REQUIRES(
+    xcmixin_no_shadow(name, std::string());
+    xcmixin_no_shadow(name, std::string (MyClass<B>::*)(int));
+    xcmixin_no_shadow(name, std::string (MyClass<B>::*)(int) const);
+
+)
 XCMIXIN_IMPL_METHOD_END()
 
 int main() {

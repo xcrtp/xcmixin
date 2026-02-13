@@ -6,7 +6,10 @@ namespace xcmixin {
     class
 
 struct EmptyBase {
-    static constexpr bool valid_class() { return true; }
+    template <typename Derived = void>
+    static constexpr bool valid_class() {
+        return true;
+    }
 };
 
 namespace details {
@@ -92,13 +95,61 @@ static constexpr bool has_method<method, method_recorder<methods...>> =
 template <typename Derived, METHOD method>
 static constexpr bool is_impl_method =
     has_method<method, typename Derived::method_recorder>;
+template <typename T, typename = void>
+constexpr size_t class_size = 0;
+template <typename T>
+constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
+
+template <typename T = void>
+struct overload;
+template <>
+struct overload<void> {
+    template <typename T1, typename T2>
+    static consteval auto same(T1 member1, T2 member2) {
+        return member1 == member2;
+    }
+};
+template <typename R, typename... Args>
+struct overload<R(Args...)> {
+    static consteval auto same(R(member1)(Args...), R(member2)(Args...)) {
+        return member1 == member2;
+    }
+    template <typename C1, typename C2>
+    static consteval auto same(R (C1::*member1)(Args...),
+                               R (C2::*member2)(Args...)) {
+        return member1 == member2;
+    }
+    template <typename C1, typename C2>
+    static consteval auto same(R (C1::*member1)(Args...) const,
+                               R (C2::*member2)(Args...) const) {
+        return member1 == member2;
+    }
+};
+template <typename C, typename R, typename... Args>
+struct overload<R (C::*)(Args...)> {
+    template <typename C1, typename C2>
+    static consteval auto same(R (C1::*member1)(Args...),
+                               R (C2::*member2)(Args...)) {
+        return member1 == member2;
+    }
+};
+template <typename C, typename R, typename... Args>
+struct overload<R (C::*)(Args...) const> {
+    template <typename C1, typename C2>
+    static consteval auto same(R (C1::*member1)(Args...) const,
+                               R (C2::*member2)(Args...) const) {
+        return member1 == member2;
+    }
+};
 
 }  // namespace details
 
+using details::class_size;
 using details::has_method;
 using details::impl_methods;
 using details::impl_methods_recorders;
 using details::is_impl_method;
+using details::overload;
 using details::method_recorder;
 using details::recorder_concat;
 
@@ -133,7 +184,6 @@ using details::recorder_concat;
         using MethodClass = meta::template method<Base, Self, meta>; \
         using Self = cls;                                            \
         using ConstSelf = const std::remove_const_t<Self>;
-
 #else
 #define XCMIXIN_IMPL_METHOD_BEGIN(name, ...)             \
     template <typename Base, __VA_ARGS__, typename meta> \
@@ -148,14 +198,22 @@ using details::recorder_concat;
         using ConstSelf = const std::remove_const_t<Self>; \
         using MethodClass = meta::template method<Base, Self, meta>;
 #endif
-#define XCMIXIN_METHOD_REQUIRES(...) \
-    constexpr static bool valid_class() { \
-        __VA_ARGS__                       \
-        return Base::valid_class();       \
+#define XCMIXIN_METHOD_REQUIRES(...)                       \
+    template <typename DerivedClass = Self>                \
+    constexpr static bool valid_class() {                  \
+        __VA_ARGS__                                        \
+        return Base::template valid_class<DerivedClass>(); \
     }
 #define XCMIXIN_IMPL_METHOD_END() \
     }                             \
     ;
+// Check whether the implementation method can be injected, only applicable to
+// non-template classes
+#define XCMIXIN_IMPL_AVAILABLE(name)                                          \
+    static_assert(::xcmixin::class_size<name> == 0,                           \
+                  "class " #name                                              \
+                  " must be incomplete before impl, you must define methods " \
+                  "before define class")
 
 #define XCMIXIN_FACTORY_DECLARE(name) XCMIXIN_METHOD_DECLARE(name)
 #define XCMIXIN_FACTORY_DEF_BEGIN(name) XCMIXIN_METHOD_DEF_BEGIN(name)
@@ -169,12 +227,16 @@ using details::recorder_concat;
 #define XCMIXIN_IMPL_FACTORY_END() XCMIXIN_IMPL_METHOD_END()
 #define xcmixin_self (*static_cast<Self*>(this))
 #define xcmixin_const_self (*static_cast<ConstSelf*>(this))
-
+// Initialize the class, check whether the class is valid
+#define xcmixin_init_class static_assert(valid_class(), "class must be valid")
+// Require the method to be implemented, check whether the method is implemented
 #define xcmixin_require_method(method)                        \
     static_assert(::xcmixin::is_impl_method<Derived, method>, \
                   "Derived must be derived from " #method)
-#define xcmixin_no_shadow(name)                      \
-    static_assert(&MethodClass::name == &Self::name, \
+// Require the method to be not shadowed, check whether the method is not
+// shadowed
+#define xcmixin_no_shadow(name, ...)                             \
+    static_assert(::xcmixin::overload<__VA_ARGS__>::same( \
+                      &MethodClass::name, &DerivedClass::name),  \
                   "method " #name " is shadowed ")
-
 #undef METHOD
