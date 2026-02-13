@@ -1,4 +1,5 @@
 /*
+!/xcmixin/
 !/.gitignore
 !/CMakeLists.txt
 !/.clang-format
