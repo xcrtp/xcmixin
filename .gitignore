@@ -1,0 +1,10 @@
+/*
+!/.gitignore
+!/CMakeLists.txt
+!/.clang-format
+!/LICENSE
+!/README.md
+!/README-zh.md
+!/paper.md
+!/README.md
+!/examples/
