@@ -64,6 +64,7 @@ class MyClass : public xcmixin::impl_methods_recorders<MyClass, recorder> {
 template <xcmixin::Impl<print_method, name_method> T>
 void print(T& p) {
     p.print();
+    std::cout << "class_name: " << p.name() << std::endl;
 }
 
 int main() {
