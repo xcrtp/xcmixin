@@ -119,63 +119,99 @@ constexpr size_t class_size = 0;
 template <typename T>
 constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
 
-template <typename T = void>
-struct overload;
-template <>
-struct overload<void> {
-    template <typename T1, typename T2>
-    static consteval auto same(T1 member1, T2 member2) {
-        return member1 == member2;
-    }
-};
-template <typename R, typename... Args>
-struct overload<R(Args...)> {
-    static consteval auto same(R(member1)(Args...), R(member2)(Args...)) {
-        return member1 == member2;
-    }
-    template <typename C1, typename C2>
-    static consteval auto same(R (C1::*member1)(Args...),
-                               R (C2::*member2)(Args...)) {
-        return member1 == member2;
-    }
-    template <typename C1, typename C2>
-    static consteval auto same(R (C1::*member1)(Args...) const,
-                               R (C2::*member2)(Args...) const) {
-        return member1 == member2;
-    }
-};
-template <typename C, typename R, typename... Args>
-struct overload<R (C::*)(Args...)> {
-    template <typename C1, typename C2>
-    static consteval auto same(R (C1::*member1)(Args...),
-                               R (C2::*member2)(Args...)) {
-        return member1 == member2;
-    }
-};
-template <typename C, typename R, typename... Args>
-struct overload<R (C::*)(Args...) const> {
-    template <typename C1, typename C2>
-    static consteval auto same(R (C1::*member1)(Args...) const,
-                               R (C2::*member2)(Args...) const) {
-        return member1 == member2;
-    }
-};
-template <typename R, typename... Args>
-struct overload<R (*)(Args...)> : public overload<R(Args...)> {};
-}  // namespace details
-
-using details::class_size;
-using details::has_method;
-using details::impl_methods;
-using details::impl_methods_recorders;
-using details::is_impl_method;
-using details::meta_method;
-using details::method_recorder;
-using details::overload;
-using details::recorder_concat;
-
 template <typename T, METHOD... method>
 concept Impl = is_impl_method<T, method...>;
+template <typename... Args>
+struct overload {
+    template <typename R>
+    static consteval auto of(R (*f)(Args...)) {
+        return f;
+    }
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(Args...)) {
+        return f;
+    }
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(Args...) const) {
+        return f;
+    }
+    template <typename R>
+    consteval overload(R (*f)(Args...)) {
+        return f;
+    }
+};
+template <typename... Args>
+struct overload_const {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(Args...) const) {
+        return f;
+    }
+};
+template <>
+struct overload_const<> {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(void) const) {
+        return f;
+    }
+    template <typename C, typename R, typename... Args>
+    static consteval auto of(R (C::*f)(Args...) const) {
+        return f;
+    }
+};
+template <typename... Args>
+struct overload_volatile {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(Args...) const) {
+        return f;
+    }
+};
+template <>
+struct overload_volatile<> {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(void) volatile) {
+        return f;
+    }
+    template <typename C, typename R, typename... Args>
+    static consteval auto of(R (C::*f)(Args...) volatile) {
+        return f;
+    }
+};
+template <typename... Args>
+struct overload_without_cv {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(Args...)) {
+        return f;
+    }
+};
+template <>
+struct overload_without_cv<> {
+    template <typename C, typename R>
+    static consteval auto of(R (C::*f)(void)) {
+        return f;
+    }
+    template <typename C, typename R, typename... Args>
+    static consteval auto of(R (C::*f)(Args...)) {
+        return f;
+    }
+};
+}  // namespace details
+// traits
+using details::class_size;
+using details::has_method;
+using details::is_impl_method;
+// concepts
+using details::Impl;
+// methods
+using details::impl_methods;
+using details::impl_methods_recorders;
+using details::meta_method;
+using details::method_recorder;
+using details::recorder_concat;
+// overload
+using details::overload;
+using details::overload_const;
+using details::overload_volatile;
+using details::overload_without_cv;
 
 }  // namespace xcmixin
 
@@ -258,8 +294,8 @@ concept Impl = is_impl_method<T, method...>;
                   "Derived must be derived from " #method)
 // Require the method to be not shadowed, check whether the method is not
 // shadowed
-#define xcmixin_no_hiding(name, ...)                                         \
-    static_assert(::xcmixin::overload<__VA_ARGS__>::same(&MethodClass::name, \
-                                                         &Derived::name),    \
-                  "method " #name " is shadowed ")
+#define xcmixin_no_hiding(name, ...)                                    \
+    static_assert(                                                      \
+        __VA_ARGS__(&MethodClass::name) == __VA_ARGS__(&Derived::name), \
+        "method " #name " is shadowed ")
 #undef METHOD
