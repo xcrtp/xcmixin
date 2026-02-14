@@ -111,9 +111,9 @@ template <METHOD method, METHOD... methods>
 static constexpr bool has_method<method, method_recorder<methods...>> =
     (std::is_same_v<meta_method<method>, meta_method<methods>> || ...);
 
-template <typename Derived, METHOD method>
+template <typename Derived, METHOD... method>
 static constexpr bool is_impl_method =
-    has_method<method, typename Derived::method_recorder>;
+    (... || has_method<method, typename Derived::method_recorder>);
 template <typename T, typename = void>
 constexpr size_t class_size = 0;
 template <typename T>
@@ -174,8 +174,8 @@ using details::method_recorder;
 using details::overload;
 using details::recorder_concat;
 
-template <typename T, METHOD method>
-concept Impl = is_impl_method<T, method>;
+template <typename T, METHOD... method>
+concept Impl = is_impl_method<T, method...>;
 
 }  // namespace xcmixin
 

@@ -61,7 +61,7 @@ class MyClass : public xcmixin::impl_methods_recorders<MyClass, recorder> {
     xcmixin_init_class;
 };
 
-template <xcmixin::Impl<print_method> T>
+template <xcmixin::Impl<print_method, name_method> T>
 void print(T& p) {
     p.print();
 }
