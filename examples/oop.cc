@@ -2,15 +2,18 @@
 #include <string>
 
 #include "xcmixin/xcmixin.hpp"
+class MyClass;
+
 XCMIXIN_PRE_DECL(print_method)
 XCMIXIN_PRE_DECL(name_method)
 XCMIXIN_PRE_DECL(new_name_method)
-XCMIXIN_METHOD_REQUIRE(print_method, xcmixin_no_hiding(print);
+XCMIXIN_PRE_DECL(dosomethings1_method)
+XCMIXIN_METHOD_REQUIRE(print_method,
+                       xcmixin_no_hiding(print, overload_const<>::of);
                        xcmixin_require_method(name_method););
+
 XCMIXIN_METHOD_REQUIRE(new_name_method,
-                       xcmixin_no_hiding(name, std::string(void)););
-XCMIXIN_METHOD_REQUIRE(name_method,
-                       xcmixin_no_hiding(name, std::string(void)););
+                       xcmixin_no_hiding(name, overload_const<long>::of););
 
 XCMIXIN_METHOD_DEF_BEGIN(dosomethings1_method)
 void dosomethings1() { std::cout << "dosomethings1" << std::endl; }
@@ -21,6 +24,7 @@ XCMIXIN_METHOD_DEF_END()
 
 XCMIXIN_METHOD_DEF_BEGIN(new_name_method)
 std::string name() { return "NewName"; }
+std::string name() const { return "NewName"; }
 XCMIXIN_METHOD_DEF_END()
 
 XCMIXIN_METHOD_DEF_BEGIN(print_method)
@@ -29,22 +33,21 @@ void print() {
     std::cout << xcmixin_self.name(11) << std::endl;
     std::cout << xcmixin_const_self.name(11) << std::endl;
 }
+void print() const { std::cout << xcmixin_const_self.name(11) << std::endl; }
 XCMIXIN_METHOD_DEF_END()
-class MyClass;
 
 XCMIXIN_IMPL_METHOD_BEGIN(name_method)
 XCMIXIN_IMPL_METHOD_FOR(MyClass)
 std::string name() { return "MyClass"; }
-std::string name(int i) { return "MyClass " + std::to_string(i); }
+std::string name(int i)  { return "MyClass " + std::to_string(i); }
 std::string name(int i) const { return "const MyClass " + std::to_string(i); }
+std::string name(long i) const { return "const MyClass " + std::to_string(i); }
 XCMIXIN_IMPL_METHOD_END()
 
 XCMIXIN_IMPL_METHOD_BEGIN(new_name_method)
 XCMIXIN_IMPL_METHOD_EXTEND_FOR(name_method, MyClass)
 using base::name;
-std::string name(int i) const {
-    return "const new MyClass " + std::to_string(i);
-}
+
 XCMIXIN_IMPL_METHOD_END()
 
 // XCMIXIN_IMPL_METHOD_BEGIN(new_name_method)
