@@ -173,6 +173,9 @@ using details::method_recorder;
 using details::overload;
 using details::recorder_concat;
 
+template <typename T, METHOD method>
+concept Impl = is_impl_method<T, method>;
+
 }  // namespace xcmixin
 
 #define XCMIXIN_METHOD_INIT()           \
@@ -218,12 +221,12 @@ using details::recorder_concat;
         using Self = __VA_ARGS__;                          \
         using ConstSelf = const std::remove_const_t<Self>; \
         using MethodClass = meta::template method<Base, Self, meta>;
-#define XCMIXIN_IMPL_METHOD_EXTEND_FOR(ext_method, ...)         \
-    __VA_ARGS__, meta > : ext_method<Base, __VA_ARGS__, meta> { \
-        using Self = __VA_ARGS__;                               \
-        using ConstSelf = const std::remove_const_t<Self>;      \
-        using base = ext_method<Base, Self, meta>;              \
-        using method_recorder =                                 \
+#define XCMIXIN_IMPL_METHOD_EXTEND_FOR(ext_method, ...)             \
+    __VA_ARGS__, meta > : ext_method<Base, __VA_ARGS__, meta> {     \
+        using Self = __VA_ARGS__;                                   \
+        using ConstSelf = const std::remove_const_t<Self>;          \
+        using base = ext_method<Base, Self, meta>;                  \
+        using method_recorder =                                     \
             base::method_recorder::template push_front<ext_method>; \
         using MethodClass = meta::template method<base, Self, meta>;
 
