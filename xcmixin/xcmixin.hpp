@@ -160,7 +160,8 @@ struct overload<R (C::*)(Args...) const> {
         return member1 == member2;
     }
 };
-
+template <typename R, typename... Args>
+struct overload<R (*)(Args...)> : public overload<R(Args...)> {};
 }  // namespace details
 
 using details::class_size;
