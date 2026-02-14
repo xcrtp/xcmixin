@@ -24,7 +24,11 @@ std::string name() { return "NewName"; }
 XCMIXIN_METHOD_DEF_END()
 
 XCMIXIN_METHOD_DEF_BEGIN(print_method)
-void print() { std::cout << "Hello, " << xcmixin_self.name() << std::endl; }
+void print() {
+    std::cout << xcmixin_self.name() << std::endl;
+    std::cout << xcmixin_self.name(11) << std::endl;
+    std::cout << xcmixin_const_self.name(11) << std::endl;
+}
 XCMIXIN_METHOD_DEF_END()
 class MyClass;
 
@@ -50,7 +54,6 @@ XCMIXIN_IMPL_METHOD_END()
 // }
 // XCMIXIN_IMPL_METHOD_END()
 
-
 using recorder = xcmixin::method_recorder<print_method, new_name_method,
                                           dosomethings1_method>;
 
@@ -58,13 +61,15 @@ class MyClass : public xcmixin::impl_methods_recorders<MyClass, recorder> {
     xcmixin_init_class;
 };
 
+template <xcmixin::Impl<print_method> T>
+void print(T& p) {
+    p.print();
+}
+
 int main() {
     MyClass my_class;
 
-    my_class.dosomethings1();
-    const auto& const_my_class = my_class;
-    std::cout << my_class.name() << std::endl;
-    std::cout << my_class.name(11) << std::endl;
-    std::cout << const_my_class.name(11) << std::endl;
+    print(my_class);
+
     return 0;
 }
