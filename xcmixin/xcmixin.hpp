@@ -69,7 +69,11 @@ struct impl_methods_helper<Derived, method> {
     struct type;
     using base = method<EmptyBase<Derived>, Derived, meta_method<method>>;
     struct type : base {
-        using method_recorder = method_recorder<method>;
+        using method_recorder =
+#ifdef __GNUC__
+            struct
+#endif
+            method_recorder<method>;
         template <typename D = Derived>
         constexpr static bool valid_class() {
             return ::xcmixin::method_validator<meta_method<method>>::
@@ -214,7 +218,26 @@ using details::overload_volatile;
 using details::overload_without_cv;
 
 }  // namespace xcmixin
+#define __XCMIXIN_PSPLITER ,
+#define __XCMIXIN_PARAM_BASE(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
+                             _12, _13, _14, _15, _16, N, ...)                  \
+    N
+#define __XCMIXIN_PARAM_SPIITER(...)                                \
+    __XCMIXIN_PARAM_BASE(                                           \
+        , ##__VA_ARGS__, __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER,    \
+        __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, \
+        __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, \
+        __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, \
+        __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, \
+        __XCMIXIN_PSPLITER, __XCMIXIN_PSPLITER, )
 
+#define __XCMIXIN_PREFIX_PARAM(...) \
+    __VA_ARGS__ __XCMIXIN_PARAM_SPIITER(__VA_ARGS__)
+#define __XCMIXIN_SUFIX_PARAM(...) \
+    __XCMIXIN_PARAM_SPIITER(__VA_ARGS__) __VA_ARGS__
+#define __XCMIXIN_MID_PARAM(...)         \
+    __XCMIXIN_PARAM_SPIITER(__VA_ARGS__) \
+    __VA_ARGS__ __XCMIXIN_PARAM_SPIITER(__VA_ARGS__)
 #define XCMIXIN_METHOD_INIT()           \
     using base_type = Base;             \
     using Self = std::decay_t<Derived>; \
@@ -246,12 +269,12 @@ using details::overload_without_cv;
     XCMIXIN_METHOD_DEF_BEGIN(name)   \
     }
 
-#define XCMIXIN_IMPL_METHOD_BEGIN(name, ...)             \
-    template <typename Base, __VA_ARGS__, typename meta> \
+#define XCMIXIN_IMPL_METHOD_BEGIN(name, ...)                                   \
+    template <typename Base, typename meta __XCMIXIN_SUFIX_PARAM(__VA_ARGS__)> \
         struct name < Base,
-#define XCMIXIN_IMPL_METHOD_BEGIN_WITH_REQUIRES(name, require_statement, ...) \
-    template <typename Base, __VA_ARGS__, typename meta>                      \
-        requires(require_statement)                                           \
+#define XCMIXIN_IMPL_METHOD_BEGIN_WITH_REQUIRES(name, require_statement, ...)  \
+    template <typename Base, typename meta __XCMIXIN_SUFIX_PARAM(__VA_ARGS__)> \
+        requires(require_statement)                                            \
     struct name < Base,
 #define XCMIXIN_IMPL_METHOD_FOR(...)                       \
     __VA_ARGS__, meta > : Base {                           \
