@@ -11,7 +11,7 @@ XCMIXIN_PRE_DECL(dosomethings1_method)
 XCMIXIN_METHOD_REQUIRE(print_method, xcmixin_no_hiding(print);
                        xcmixin_require_method(name_method););
 
-XCMIXIN_METHOD_REQUIRE(new_name_method, xcmixin_no_hiding(name, long);
+XCMIXIN_METHOD_REQUIRE(name_method, xcmixin_no_hiding(name, long);
                        xcmixin_no_hiding(name, int, const_););
 
 XCMIXIN_METHOD_DEF_BEGIN(dosomethings1_method)
@@ -47,13 +47,6 @@ XCMIXIN_IMPL_METHOD_EXTEND_FOR(name_method, MyClass)
 using base::name;
 
 XCMIXIN_IMPL_METHOD_END()
-
-// XCMIXIN_IMPL_METHOD_BEGIN(new_name_method)
-// XCMIXIN_IMPL_METHOD_FOR(MyClass)
-// std::string name(int i) const {
-//     return "const new MyClass " + std::to_string(i);
-// }
-// XCMIXIN_IMPL_METHOD_END()
 
 using recorder = xcmixin::method_recorder<print_method, new_name_method,
                                           dosomethings1_method>;
