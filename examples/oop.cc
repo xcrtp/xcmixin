@@ -8,12 +8,11 @@ XCMIXIN_PRE_DECL(print_method)
 XCMIXIN_PRE_DECL(name_method)
 XCMIXIN_PRE_DECL(new_name_method)
 XCMIXIN_PRE_DECL(dosomethings1_method)
-XCMIXIN_METHOD_REQUIRE(print_method,
-                       xcmixin_no_hiding(print, overload_const<>::of);
+XCMIXIN_METHOD_REQUIRE(print_method, xcmixin_no_hiding(print);
                        xcmixin_require_method(name_method););
 
-XCMIXIN_METHOD_REQUIRE(new_name_method,
-                       xcmixin_no_hiding(name, overload_const<long>::of););
+XCMIXIN_METHOD_REQUIRE(new_name_method, xcmixin_no_hiding(name, long);
+                       xcmixin_no_hiding(name, int, const_););
 
 XCMIXIN_METHOD_DEF_BEGIN(dosomethings1_method)
 void dosomethings1() { std::cout << "dosomethings1" << std::endl; }
@@ -33,13 +32,12 @@ void print() {
     std::cout << xcmixin_self.name(11) << std::endl;
     std::cout << xcmixin_const_self.name(11) << std::endl;
 }
-void print() const { std::cout << xcmixin_const_self.name(11) << std::endl; }
 XCMIXIN_METHOD_DEF_END()
 
 XCMIXIN_IMPL_METHOD_BEGIN(name_method)
 XCMIXIN_IMPL_METHOD_FOR(MyClass)
 std::string name() { return "MyClass"; }
-std::string name(int i)  { return "MyClass " + std::to_string(i); }
+std::string name(int i) { return "MyClass " + std::to_string(i); }
 std::string name(int i) const { return "const MyClass " + std::to_string(i); }
 std::string name(long i) const { return "const MyClass " + std::to_string(i); }
 XCMIXIN_IMPL_METHOD_END()
