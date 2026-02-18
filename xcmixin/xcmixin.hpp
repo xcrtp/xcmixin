@@ -2,6 +2,8 @@
 #include <type_traits>
 
 namespace xcmixin {
+
+// basic types
 namespace details {
 
 template <typename emitter>
@@ -74,14 +76,17 @@ static constexpr bool contains = is_one_of<T, container>;
 }  // namespace fn
 }  // namespace details
 
+// overload validator
 namespace details {
-
+// basic overload types
 template <typename... Owner>
 struct member_owner;
 template <typename... Args>
 struct args;
 template <typename... Args>
 struct ret;
+
+// member category
 namespace member_category {
 struct any_;
 struct const_;
@@ -96,6 +101,7 @@ template <typename T>
 static constexpr bool is_category = fn::contains<category_list, T>;
 }  // namespace member_category
 
+// template method validator
 template <typename Derived, typename Base, typename expected_return_type,
           typename return_type>
 static constexpr bool is_valid =
@@ -113,6 +119,7 @@ inline constexpr bool is_nomal<> = false;
 template <typename... Args>
 inline constexpr bool is_empty = sizeof...(Args) == 0;
 
+// overloader
 template <typename args = args<>, typename owner = member_owner<>,
           typename category = member_category::any_, typename ret = ret<>>
 struct overloader : invalid_type<fn::type_list<args, owner, category, ret>> {};
@@ -272,6 +279,7 @@ struct overloader<args<Args...>, member_owner<Derived>, member_category::any_,
                      member_category::static_, ret<R...>>::of;
 };
 
+// overload args parser
 template <typename args_, typename category_, typename ret_>
 struct overload_args {
     template <typename Derived>
@@ -316,6 +324,7 @@ struct parser_overload_args_helper<overload_args<args_, category_, ret_>, Arg,
           overload_args<fn::push_back<args_, Arg>, category_, ret_>, Args...>> {
 };
 
+// export overload api
 template <typename... Args>
 struct overload {
     template <typename owner>
@@ -325,6 +334,7 @@ struct overload {
 
 }  // namespace details
 
+// core mixin framework
 #define METHOD                              \
     template <typename, typename, typename> \
     class
@@ -377,6 +387,15 @@ struct recorder_concat_helper<T, Ts...>
     : return_type<typename T::template concat<
           deref_type<recorder_concat_helper<Ts...>>>> {};
 
+template <typename Method, typename Derived, typename = void>
+constexpr bool vaild_base_class = true;
+template <typename Method, typename Derived>
+constexpr auto
+    vaild_base_class<Method, Derived, std::void_t<typename Method::base_meta>> =
+        method_validator<typename Method::base_meta>::template valid_method<
+            typename Method::base, Derived>() &&
+        vaild_base_class<typename Method::base, Derived>;
+
 template <typename Derived, METHOD... methods>
 struct impl_methods_helper;
 template <typename Derived, METHOD... methods>
@@ -395,7 +414,7 @@ struct impl_methods_helper<Derived, method> {
         constexpr static bool valid_class() {
             return ::xcmixin::method_validator<meta_method<method>>::
                        template valid_method<base, Derived>() &&
-                   base::valid_class();
+                   vaild_base_class<base, Derived> && base::valid_class();
         }
     };
 };
@@ -411,7 +430,7 @@ struct impl_methods_helper<Derived, method, methods...> {
         constexpr static bool valid_class() {
             return ::xcmixin::method_validator<meta_method<method>>::
                        template valid_method<base, Derived>() &&
-                   base::valid_class();
+                   vaild_base_class<base, Derived> && base::valid_class();
         }
     };
 };
@@ -530,6 +549,7 @@ using details::recorder_concat;
         using Self = __VA_ARGS__;                                   \
         using ConstSelf = const std::remove_const_t<Self>;          \
         using base = ext_method<Base, Self, meta>;                  \
+        using base_meta = ::xcmixin::meta_method<ext_method>;       \
         using method_recorder =                                     \
             base::method_recorder::template push_front<ext_method>; \
         using MethodClass = meta::template method<base, Self, meta>;
