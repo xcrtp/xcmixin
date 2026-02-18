@@ -335,9 +335,12 @@ struct overload {
 }  // namespace details
 
 // core mixin framework
+// simplify method declaration
 #define METHOD                              \
     template <typename, typename, typename> \
     class
+
+// root empty base class for inherit chain
 template <typename Derived>
 struct EmptyBase {
     template <typename D = Derived>
@@ -345,6 +348,8 @@ struct EmptyBase {
         return true;
     }
 };
+
+// method common validator, all special methods will be call it to validate
 template <typename meta>
 struct method_validator {
     template <typename MethodClass, typename Derived>
@@ -352,7 +357,9 @@ struct method_validator {
         return true;
     }
 };
+// core framework implementation
 namespace details {
+// method recorder, store all methods in it
 template <METHOD... methods>
 struct method_recorder {
     template <METHOD... ext_methods>
@@ -368,11 +375,15 @@ struct method_recorder {
     struct concat_helper<method_recorder<ext_methods...>>
         : return_type<method_recorder<methods..., ext_methods...>> {};
 };
+
+// meta method, store method class and method type
 template <METHOD method_>
 struct meta_method {
     template <typename Base, typename Derived, typename method_type>
     using method = method_<Base, Derived, method_type>;
 };
+
+// method recorder concat helper, concat all method recorders
 template <typename... Ts>
 struct recorder_concat_helper;
 template <typename... Ts>
@@ -387,6 +398,7 @@ struct recorder_concat_helper<T, Ts...>
     : return_type<typename T::template concat<
           deref_type<recorder_concat_helper<Ts...>>>> {};
 
+// method base class validator, check if method base class is valid
 template <typename Method, typename Derived, typename = void>
 constexpr bool vaild_base_class = true;
 template <typename Method, typename Derived>
@@ -396,6 +408,8 @@ constexpr auto
             typename Method::base, Derived>() &&
         vaild_base_class<typename Method::base, Derived>;
 
+// the core inherit chain generator, inherit impl_methods<...> to mixin all
+// methods
 template <typename Derived, METHOD... methods>
 struct impl_methods_helper;
 template <typename Derived, METHOD... methods>
@@ -435,6 +449,8 @@ struct impl_methods_helper<Derived, method, methods...> {
     };
 };
 
+// method recorder inherit chain generator, inherit impl_methods_recorders<...>
+// to mixin all methods in the recorders
 template <typename Derived, typename recorders>
 struct impl_methods_recorder_helper;
 template <typename Derived, typename... recorders>
@@ -459,6 +475,7 @@ constexpr size_t class_size = 0;
 template <typename T>
 constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
 
+// concept, check if a class is implemented a method
 template <typename T, METHOD... method>
 concept Impl = is_impl_method<T, method...>;
 
@@ -481,6 +498,8 @@ using details::method_recorder;
 using details::recorder_concat;
 
 }  // namespace xcmixin
+
+// macro expand utils
 #define __XCMIXIN_PSPLITER ,
 #define __XCMIXIN_PARAM_BASE(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
                              _12, _13, _14, _15, _16, N, ...)                  \
@@ -501,6 +520,8 @@ using details::recorder_concat;
 #define __XCMIXIN_MID_PARAM(...)         \
     __XCMIXIN_PARAM_SPIITER(__VA_ARGS__) \
     __VA_ARGS__ __XCMIXIN_PARAM_SPIITER(__VA_ARGS__)
+
+// user macro api
 #define XCMIXIN_METHOD_INIT()           \
     using base_type = Base;             \
     using Self = std::decay_t<Derived>; \
