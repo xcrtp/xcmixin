@@ -1,6 +1,330 @@
 #pragma once
 #include <type_traits>
+
 namespace xcmixin {
+namespace details {
+
+template <typename emitter>
+struct invalid_type {
+    static_assert(false, "invalid type");
+};
+template <typename emitter, typename T = bool>
+struct invalid_value_type {
+    static_assert(false, "invalid type");
+    static constexpr bool value = T{};
+};
+template <typename emitter, typename T = bool>
+constexpr static T invalid_value = invalid_value_type<emitter, T>::value;
+
+template <typename T>
+struct return_type {
+    using type = T;
+};
+template <typename T>
+using deref_type = typename T::type;
+
+namespace fn {
+template <typename... elms>
+struct type_list;
+
+template <typename container, typename... elms>
+struct push_back_helper : invalid_value_type<container> {};
+template <typename container, typename... elms>
+using push_back = deref_type<push_back_helper<container, elms...>>;
+template <template <typename...> typename container, typename... oelms,
+          typename... elms>
+struct push_back_helper<container<oelms...>, elms...>
+    : return_type<container<oelms..., elms...>> {};
+template <typename container, typename... elms>
+struct push_front_helper : invalid_value_type<container> {};
+template <typename container, typename... elms>
+using push_front = deref_type<push_front_helper<container, elms...>>;
+template <template <typename...> typename container, typename... oelms,
+          typename... elms>
+struct push_front_helper<container<oelms...>, elms...>
+    : return_type<container<elms..., oelms...>> {};
+template <typename... containers>
+struct concat_helper : invalid_value_type<type_list<containers...>> {};
+template <typename... containers>
+using concat = deref_type<concat_helper<containers...>>;
+template <template <typename...> typename container, typename... oelms,
+          typename... elms>
+struct concat_helper<container<oelms...>, container<elms...>>
+    : return_type<container<elms..., oelms...>> {};
+template <typename container>
+struct concat_helper<container> : return_type<container> {};
+template <typename container1, typename container2, typename... containers>
+struct concat_helper<container1, container2, containers...>
+    : return_type<concat<concat<container1, container2>, containers...>> {};
+template <typename container>
+static constexpr bool is_empty = invalid_value<container>;
+template <template <typename...> typename container, typename... elms>
+static constexpr bool is_empty<container<elms...>> = sizeof...(elms) == 0;
+template <typename T, typename container>
+static constexpr bool is_one_of = invalid_value<container>;
+template <typename T, template <typename...> typename container>
+static constexpr bool is_one_of<T, container<>> = false;
+template <typename T, template <typename...> typename container, typename... O>
+static constexpr bool is_one_of<T, container<O...>> =
+    (std::is_same_v<T, O> || ...);
+
+template <typename container, typename T>
+static constexpr bool contains = is_one_of<T, container>;
+
+}  // namespace fn
+}  // namespace details
+
+namespace details {
+
+template <typename... Owner>
+struct member_owner;
+template <typename... Args>
+struct args;
+template <typename... Args>
+struct ret;
+namespace member_category {
+struct any_;
+struct const_;
+struct volatile_;
+struct const_volatile_;
+struct non_const_volatile_;
+struct static_;
+
+using category_list = fn::type_list<any_, const_, volatile_, const_volatile_,
+                                    non_const_volatile_, static_>;
+template <typename T>
+static constexpr bool is_category = fn::contains<category_list, T>;
+}  // namespace member_category
+
+template <typename Derived, typename Base, typename expected_return_type,
+          typename return_type>
+static constexpr bool is_valid =
+    (std::is_base_of_v<Base, Derived> || std::is_same_v<Base, Derived>) &&
+    (fn::contains<expected_return_type, return_type> ||
+     fn::is_empty<expected_return_type>);
+template <typename... Args>
+inline constexpr bool is_void_any = (std::is_void_v<Args> || ...);
+template <>
+inline constexpr bool is_void_any<> = false;
+template <typename... Args>
+inline constexpr bool is_nomal = (sizeof...(Args) > 0 && !is_void_any<Args...>);
+template <>
+inline constexpr bool is_nomal<> = false;
+template <typename... Args>
+inline constexpr bool is_empty = sizeof...(Args) == 0;
+
+template <typename args = args<>, typename owner = member_owner<>,
+          typename category = member_category::any_, typename ret = ret<>>
+struct overloader : invalid_type<fn::type_list<args, owner, category, ret>> {};
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>,
+                  member_category::non_const_volatile_, ret<R...>> {
+    using category = member_category::non_const_volatile_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)(Args...))
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_nomal<Args...>)
+    {
+        return f;
+    }
+    template <typename Base, typename R_, typename... Args_>
+    static consteval auto of(R_ (Base::*f)(Args_...))
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_empty<Args...>)
+    {
+        return f;
+    }
+};
+
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>, member_category::const_,
+                  ret<R...>> {
+    using category = member_category::const_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)(Args...) const)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_nomal<Args...>)
+    {
+        return f;
+    }
+    template <typename Base, typename R_, typename... Args_>
+    static consteval auto of(R_ (Base::*f)(Args_...) const)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_empty<Args...>)
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>,
+                  member_category::volatile_, ret<R...>> {
+    using category = member_category::volatile_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)(Args...) volatile)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_nomal<Args...>)
+    {
+        return f;
+    }
+    template <typename Base, typename R_, typename... Args_>
+    static consteval auto of(R_ (Base::*f)(Args_...) volatile)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_empty<Args...>)
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>,
+                  member_category::const_volatile_, ret<R...>> {
+    using category = member_category::const_volatile_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)(Args...) const volatile)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_nomal<Args...>)
+    {
+        return f;
+    }
+    template <typename Base, typename R_, typename... Args_>
+    static consteval auto of(R_ (Base::*f)(Args_...) const volatile)
+        requires(is_valid<Derived, Base, ret<R...>, R_> && is_empty<Args...>)
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>,
+                  member_category::static_, ret<R...>> {
+    using category = member_category::static_;
+    template <typename R_>
+    static consteval auto of(R_ (*f)(Args...))
+        requires(is_valid<Derived, Derived, ret<R...>, R_> && is_nomal<Args...>)
+    {
+        return f;
+    }
+    template <typename R_, typename... Args_>
+    static consteval auto of(R_ (*f)(Args_...))
+        requires(is_valid<Derived, Derived, ret<R...>, R_> && is_empty<Args...>)
+
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R>
+struct overloader<args<void>, member_owner<Derived>, member_category::const_,
+                  ret<R...>> {
+    using category = member_category::const_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)() const)
+        requires(is_valid<Derived, Base, ret<R...>, R_>)
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R>
+struct overloader<args<void>, member_owner<Derived>, member_category::volatile_,
+                  ret<R...>> {
+    using category = member_category::volatile_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)() volatile)
+        requires(is_valid<Derived, Base, ret<R...>, R_>)
+
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R>
+struct overloader<args<void>, member_owner<Derived>,
+                  member_category::non_const_volatile_, ret<R...>> {
+    using category = member_category::non_const_volatile_;
+    template <typename Base, typename R_>
+    static consteval auto of(R_ (Base::*f)())
+        requires(is_valid<Derived, Base, ret<R...>, R_>)
+
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R>
+struct overloader<args<void>, member_owner<Derived>, member_category::static_,
+                  ret<R...>> {
+    using category = member_category::static_;
+    template <typename R_>
+    static consteval auto of(R_ (*f)())
+        requires(is_valid<Derived, Derived, ret<R...>, R_>)
+
+    {
+        return f;
+    }
+};
+template <typename Derived, typename... R, typename... Args>
+struct overloader<args<Args...>, member_owner<Derived>, member_category::any_,
+                  ret<R...>>
+    : overloader<args<Args...>, member_owner<Derived>, member_category::const_,
+                 ret<R...>>,
+      overloader<args<Args...>, member_owner<Derived>,
+                 member_category::volatile_, ret<R...>>,
+      overloader<args<Args...>, member_owner<Derived>,
+                 member_category::non_const_volatile_, ret<R...>>,
+      overloader<args<Args...>, member_owner<Derived>, member_category::static_,
+                 ret<R...>> {
+    using category = member_category::any_;
+    using overloader<args<Args...>, member_owner<Derived>,
+                     member_category::const_, ret<R...>>::of;
+    using overloader<args<Args...>, member_owner<Derived>,
+                     member_category::volatile_, ret<R...>>::of;
+    using overloader<args<Args...>, member_owner<Derived>,
+                     member_category::non_const_volatile_, ret<R...>>::of;
+    using overloader<args<Args...>, member_owner<Derived>,
+                     member_category::static_, ret<R...>>::of;
+};
+
+template <typename args_, typename category_, typename ret_>
+struct overload_args {
+    template <typename Derived>
+    using overloader =
+        overloader<args_, member_owner<Derived>, category_, ret_>;
+};
+template <typename... Args>
+struct parser_overload_args_helper;
+template <typename... Args>
+using parser_overload_args = deref_type<parser_overload_args_helper<Args...>>;
+
+template <typename... Args>
+struct parser_overload_args_helper
+    : return_type<parser_overload_args<
+          overload_args<args<>, member_category::any_, ret<>>, Args...>> {};
+
+template <typename args_, typename category_, typename ret_>
+struct parser_overload_args_helper<overload_args<args_, category_, ret_>>
+    : return_type<overload_args<args_, category_, ret_>> {};
+
+template <typename args_, typename category_, typename ret_, typename category,
+          typename... Args>
+    requires(member_category::is_category<category>)
+struct parser_overload_args_helper<overload_args<args_, category_, ret_>,
+                                   category, Args...>
+    : return_type<
+          parser_overload_args<overload_args<args_, category, ret_>, Args...>> {
+};
+
+template <typename args_, typename category_, typename ret_, typename R,
+          typename... Args>
+struct parser_overload_args_helper<overload_args<args_, category_, ret_>,
+                                   ret<R>, Args...>
+    : return_type<parser_overload_args<overload_args<args_, category_, ret<R>>,
+                                       Args...>> {};
+
+template <typename args_, typename category_, typename ret_, typename Arg,
+          typename... Args>
+struct parser_overload_args_helper<overload_args<args_, category_, ret_>, Arg,
+                                   Args...>
+    : return_type<parser_overload_args<
+          overload_args<fn::push_back<args_, Arg>, category_, ret_>, Args...>> {
+};
+
+template <typename... Args>
+struct overload {
+    template <typename owner>
+    using overloader =
+        parser_overload_args<Args...>::template overloader<owner>;
+};
+
+}  // namespace details
+
 #define METHOD                              \
     template <typename, typename, typename> \
     class
@@ -19,13 +343,6 @@ struct method_validator {
     }
 };
 namespace details {
-template <typename T>
-struct return_type {
-    using type = T;
-};
-template <typename T>
-using deref_type = typename T::type;
-
 template <METHOD... methods>
 struct method_recorder {
     template <METHOD... ext_methods>
@@ -125,79 +442,7 @@ constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
 
 template <typename T, METHOD... method>
 concept Impl = is_impl_method<T, method...>;
-template <typename... Args>
-struct overload {
-    template <typename R>
-    static consteval auto of(R (*f)(Args...)) {
-        return f;
-    }
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(Args...)) {
-        return f;
-    }
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(Args...) const) {
-        return f;
-    }
-    template <typename R>
-    consteval overload(R (*f)(Args...)) {
-        return f;
-    }
-};
-template <typename... Args>
-struct overload_const {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(Args...) const) {
-        return f;
-    }
-};
-template <>
-struct overload_const<> {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(void) const) {
-        return f;
-    }
-    template <typename C, typename R, typename... Args>
-    static consteval auto of(R (C::*f)(Args...) const) {
-        return f;
-    }
-};
-template <typename... Args>
-struct overload_volatile {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(Args...) const) {
-        return f;
-    }
-};
-template <>
-struct overload_volatile<> {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(void) volatile) {
-        return f;
-    }
-    template <typename C, typename R, typename... Args>
-    static consteval auto of(R (C::*f)(Args...) volatile) {
-        return f;
-    }
-};
-template <typename... Args>
-struct overload_without_cv {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(Args...)) {
-        return f;
-    }
-};
-template <>
-struct overload_without_cv<> {
-    template <typename C, typename R>
-    static consteval auto of(R (C::*f)(void)) {
-        return f;
-    }
-    template <typename C, typename R, typename... Args>
-    static consteval auto of(R (C::*f)(Args...)) {
-        return f;
-    }
-};
+
 }  // namespace details
 // traits
 using details::class_size;
@@ -205,17 +450,16 @@ using details::has_method;
 using details::is_impl_method;
 // concepts
 using details::Impl;
+// overload
+using details::overload;
+using details::ret;
+using namespace details::member_category;
 // methods
 using details::impl_methods;
 using details::impl_methods_recorders;
 using details::meta_method;
 using details::method_recorder;
 using details::recorder_concat;
-// overload
-using details::overload;
-using details::overload_const;
-using details::overload_volatile;
-using details::overload_without_cv;
 
 }  // namespace xcmixin
 #define __XCMIXIN_PSPLITER ,
@@ -317,8 +561,10 @@ using details::overload_without_cv;
                   "Derived must be derived from " #method)
 // Require the method to be not shadowed, check whether the method is not
 // shadowed
-#define xcmixin_no_hiding(name, ...)                                    \
-    static_assert(                                                      \
-        __VA_ARGS__(&MethodClass::name) == __VA_ARGS__(&Derived::name), \
-        "method " #name " is shadowed ")
+#define xcmixin_no_hiding(name, ...)                                         \
+    static_assert(::xcmixin::overload<__VA_ARGS__>::template overloader<     \
+                      MethodClass>::of(&MethodClass::name) ==                \
+                      ::xcmixin::overload<__VA_ARGS__>::template overloader< \
+                          MethodClass>::of(&Derived::name),                  \
+                  "method " #name " is shadowed ")
 #undef METHOD
