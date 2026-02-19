@@ -1,3 +1,11 @@
+// xcmixin.hpp
+// A modern C++ static mixin solution using CRTP.
+//
+// Copyright (c) 2024 Tian Li
+// Licensed under the MIT License.
+//
+// https://github.com/X-ChenD-Hai/xcmixin
+
 #pragma once
 #include <type_traits>
 
