@@ -546,7 +546,7 @@ using details::recorder_concat;
     template <typename Base, typename Derived, typename meta> \
     struct name : Base {                                      \
         XCMIXIN_METHOD_INIT()
-#define XCMIXIN_METHOD_DEF_EXTEND_BEGIN(name, ext_method)          \
+#define XCMIXIN_METHOD_DEF_EXTEND_BEGIN(name, ext_method)           \
     template <typename Base, typename Derived, typename meta>       \
     struct name : ext_method<Base, Derived, meta> {                 \
         using Self = std::decay_t<Derived>;                         \
