@@ -523,7 +523,6 @@ using details::recorder_concat;
 
 // user macro api
 #define XCMIXIN_METHOD_INIT()           \
-    using base_type = Base;             \
     using Self = std::decay_t<Derived>; \
     using ConstSelf = const Self;       \
     using MethodClass = meta::template method<Base, Self, meta>;
@@ -546,6 +545,16 @@ using details::recorder_concat;
     template <typename Base, typename Derived, typename meta> \
     struct name : Base {                                      \
         XCMIXIN_METHOD_INIT()
+#define XCMIXIN_METHOD_DEF_EXTEND_BEGIN(name, ext_method)          \
+    template <typename Base, typename Derived, typename meta>       \
+    struct name : ext_method<Base, Derived, meta> {                 \
+        using Self = std::decay_t<Derived>;                         \
+        using ConstSelf = const Self;                               \
+        using base = ext_method<Base, Self, meta>;                  \
+        using base_meta = ::xcmixin::meta_method<ext_method>;       \
+        using method_recorder =                                     \
+            base::method_recorder::template push_front<ext_method>; \
+        using MethodClass = meta::template method<base, Self, meta>;
 #define XCMIXIN_METHOD_DEF_END() \
     }                            \
     ;
