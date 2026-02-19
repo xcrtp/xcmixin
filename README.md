@@ -1,5 +1,7 @@
 # xcmixin
 
+[**中文文档**](README_CN.md)
+
 **xcmixin** is a modern C++ static mixin solution that uses CRTP to compose multiple methods into classes at compile time, without modifying the original class definition.
 
 ## Quick Start
