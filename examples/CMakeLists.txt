@@ -1,6 +1,5 @@
-
-
-
+add_executable(template_example template.cc)
+target_link_libraries(template_example PRIVATE xcmixin)
 add_executable(oop_example oop.cc)
 target_link_libraries(oop_example PRIVATE xcmixin)
 add_executable(overload_example overload-msvc-bug.cc)

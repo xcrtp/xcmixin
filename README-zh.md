@@ -1,38 +1,99 @@
 # xcmixin
-现代C++静态混入解决方方案
 
-静态混入是指在编译时将多个成员函数混入到一个类中，而无需修改类的定义与实现，
+**xcmixin** 是现代 C++ 的静态混入（Mixin）解决方案，通过 CRTP 模式在编译期将多个方法混入类中，无需修改类的原始定义。
 
-**xcmixin**为现代C++提供了一种**安全**，**灵活**，**零开销**的静态混入解决方案。
+## 快速开始
+
+### 构建项目
+
+```bash
+# 配置并构建
+cmake -B build -G Ninja
+cmake --build build
+
+# 运行示例
+build/examples/oop_example
+```
+
+### 快速示例
+
+```cpp
+#include <iostream>
+#include <string>
+#include "xcmixin/xcmixin.hpp"
+
+class MyClass;
+XCMIXIN_IMPL_AVAILABLE(MyClass);
+
+// 1. 定义混入方法
+XCMIXIN_DEF_BEGIN(name_method)
+std::string name() { return "Unknown"; }
+XCMIXIN_DEF_END()
+
+XCMIXIN_DEF_BEGIN(print_method)
+void print() { std::cout << xcmixin_self.name() << std::endl; }
+XCMIXIN_DEF_END()
+
+// 2. 实现混入（可选：为特定类定制）
+XCMIXIN_IMPL_BEGIN(name_method)
+XCMIXIN_IMPL_FOR(MyClass)
+std::string name() { return "MyClass"; }
+XCMIXIN_IMPL_END()
+
+// 3. 组合混入
+using recorder = xcmixin::mixin_recorder<print_method, name_method>;
+
+// 4. 应用到类
+class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
+    xcmixin_init_class;
+};
+
+int main() {
+    MyClass obj;
+    obj.print();      // 输出: MyClass
+    obj.name();
+    return 0;
+}
+```
 
 ## 安全
-编译期验证实现/混入有效性
+
+编译期验证确保混入的有效性与正确性：
+
+**类前置声明**
 ```cpp
 class MyClass;
-XCMIXIN_IMPL_AVAILABLE(MyClass); // 所有注入行为需要在类定义之前完成
-// implentation
-// MyClass defined
+XCMIXIN_IMPL_AVAILABLE(MyClass); // 所有注入行为须在类定义之前完成
+// ...
+class MyClass { /* ... */ };
 ```
 
-保证最终派生类本混入类包含依赖的全部其他混入。
+**依赖约束**
 ```cpp
-XCMIXIN_REQUIRE(print_mixin,
-                       xcmixin_require_mixin(name_mixin););
+XCMIXIN_REQUIRE(print_method,
+    xcmixin_require_mixin(name_method););
 ```
 
-编译期锲约，确保混入的成员函数不会隐藏基类的成员函数。或被子类覆盖，提供完善的重载选项，提供简化C++20 concept使用体验。
+**方法签名验证**
 ```cpp
-XCMIXIN_REQUIRE(print_mixin,
-                       xcmixin_require_method(print,void); // 确保print() [const/volatile/const volatile]  成员在派生类中存在
-                       );
+XCMIXIN_REQUIRE(print_method,
+    xcmixin_require_method(print, void); // 验证 const/volatile/const volatile 重载
+);
+```
 
-XCMIXIN_REQUIRE(name_mixin, xcmixin_no_hiding(name, long,int); // 确保name(int,long) [const/volatile/const volatile]  成员存在且不被隐藏
-                       xcmixin_no_hiding(name, int, const_);); // 确保name(int) const成员存在且不被隐藏
-
+**隐藏检测**
+```cpp
+XCMIXIN_REQUIRE(name_method,
+    xcmixin_no_hiding(name, long, int); // 验证 name(int, long) 重载不被隐藏
+    xcmixin_no_hiding(name, int, const_););
 ```
 
 ## 灵活
-提供混入方法集的通用实现。
+
+### 通用实现
+
+定义可复用的方法集合：
+
 ```cpp
 XCMIXIN_DEF_BEGIN(new_name_method)
 std::string name() { return "NewName"; }
@@ -40,9 +101,12 @@ std::string name() const { return "NewName"; }
 XCMIXIN_DEF_END()
 ```
 
-在任意混入类中使用`xcmixin_self`/`xcmixin_const_self`访问全部最终混入方法。
+### 跨 Mixin 调用
+
+使用 `xcmixin_self` / `xcmixin_const_self` 在任意混入中访问最终派生类的所有方法：
+
 ```cpp
-XCMIXIN_DEF_BEGIN(print_mixin)
+XCMIXIN_DEF_BEGIN(print_method)
 void print() {
     std::cout << xcmixin_self.name() << std::endl;
     std::cout << xcmixin_self.name(11) << std::endl;
@@ -51,9 +115,12 @@ void print() {
 XCMIXIN_DEF_END()
 ```
 
-为特定派生类提供自定义实现。
+### 特化实现
+
+为特定派生类提供定制化的方法实现：
+
 ```cpp
-XCMIXIN_IMPL_BEGIN(name_mixin)
+XCMIXIN_IMPL_BEGIN(name_method)
 XCMIXIN_IMPL_FOR(MyClass)
 std::string name() { return "MyClass"; }
 std::string name(int i) { return "MyClass " + std::to_string(i); }
@@ -61,49 +128,130 @@ std::string name(int i) const { return "const MyClass " + std::to_string(i); }
 std::string name(long i) const { return "const MyClass " + std::to_string(i); }
 XCMIXIN_IMPL_END()
 ```
-基于已有混入扩展新的混入方法。
+
+### Mixin 扩展
+
+基于已有 Mixin 派生新的 Mixin：
+
 ```cpp
-XCMIXIN_DEF_BEGIN(name_mixin)
+XCMIXIN_DEF_BEGIN(name_method)
 std::string name() { return "Unknown"; }
 XCMIXIN_DEF_END()
-XCMIXIN_DEF_EXTEND_BEGIN(new_name_method, name_mixin)
-using base::name; // 提供base别名指代直接基类
+
+XCMIXIN_DEF_EXTEND_BEGIN(new_name_method, name_method)
+using base::name; // `base` 指向直接基类
 std::string name() { return "NewName"; }
 XCMIXIN_DEF_END()
 ```
-基于已有混入为特定混入类扩展新的混入方法。
+
+### 特化扩展
+
+为特定派生类扩展已实现的 Mixin：
+
 ```cpp
 XCMIXIN_IMPL_BEGIN(new_name_method)
-XCMIXIN_IMPL_EXTEND_FOR(name_mixin, MyClass)
+XCMIXIN_IMPL_EXTEND_FOR(name_method, MyClass)
 using base::name;
 std::string name() { return "NewName"; }
 XCMIXIN_IMPL_END()
 ```
-灵活组合方法集，满足不同场景需求。
+
+### 模板类支持
+
+xcmixin 同时支持模板类。使用 `XCMIXIN_PRE_DECL` 前置声明 Mixin，并使用 `xcmixin_init_template` 进行验证：
+
 ```cpp
-using recorder = xcmixin::method_recorder<print_mixin, new_name_method,
-                                          dosomethings1_method>;
-```
-基于方法记录器的混入
-```cpp
-class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
-    xcmixin_init_class;
+template <typename T>
+class MyTemplate;
+XCMIXIN_PRE_DECL(name_mixin)
+XCMIXIN_REQUIRE(name_mixin, xcmixin_no_hiding(name);)
+
+XCMIXIN_DEF_BEGIN(name_mixin)
+std::string name() { return "Unknown"; }
+XCMIXIN_DEF_END()
+
+XCMIXIN_DEF_BEGIN(sayhello_mixin)
+void say_hello() { std::cout << xcmixin_self.name() << " hello " << std::endl; }
+XCMIXIN_DEF_END()
+
+using recorder = xcmixin::mixin_recorder<name_mixin, sayhello_mixin>;
+
+template <typename T>
+class MyTemplate : public xcmixin::impl_recorder<MyTemplate<T>, recorder> {
+    xcmixin_init_template(xcmixin::impl_recorder<MyTemplate<T>, recorder>);
 };
 ```
-像调用普通成员函数一样调用混入方法。
+
+`XCMIXIN_IMPL_BEGIN` 支持扩展参数以声明模板参数，可为不同模板特化提供定制实现：
+
+```cpp
+// 通用模板实现
+XCMIXIN_IMPL_BEGIN(name_mixin, typename T)
+XCMIXIN_IMPL_FOR(MyTemplate<T>)
+std::string name() { return "MyTemplate default"; }
+XCMIXIN_IMPL_END()
+
+// MyTemplate<int> 特化
+XCMIXIN_IMPL_BEGIN(name_mixin)
+XCMIXIN_IMPL_FOR(MyTemplate<int>)
+std::string name() { return "MyTemplate<int>"; }
+XCMIXIN_IMPL_END()
+
+// MyTemplate<float> 特化
+XCMIXIN_IMPL_BEGIN(name_mixin)
+XCMIXIN_IMPL_FOR(MyTemplate<float>)
+std::string name() { return "MyTemplate<float>"; }
+XCMIXIN_IMPL_END()
+
+int main() {
+    MyTemplate<double> obj1;
+    obj1.say_hello();  // 输出: MyTemplate default hello
+    MyTemplate<int> obj2;
+    obj2.say_hello();  // 输出: MyTemplate<int> hello
+    MyTemplate<float> obj3;
+    obj3.say_hello();  // 输出: MyTemplate<float> hello
+}
+```
+
+### 组合与注入
+
+通过 `mixin_recorder` 灵活组合多个混入：
+
+```cpp
+using recorder = xcmixin::mixin_recorder<print_method, new_name_method,
+                                          dosomethings1_method>;
+```
+
+将组合后的 Mixin 注入目标类：
+
+```cpp
+class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
+    xcmixin_init_class;  // 须在类定义末尾调用，执行编译期验证
+};
+```
+
+### 使用方式
+
+与普通成员函数无异：
+
 ```cpp
 MyClass obj;
 obj.print();
 obj.name();
 obj.dosomethings1();
 ```
-替代基类引用的向上转型调用混入方法，提供类似多态的调用体验。并灵活组合不同的接口。
+
+### 泛型约束
+
+使用 `Impl` 概念约束模板类型，作为传统基类引用的替代与增强：
+
 ```cpp
-template <xcmixin::Impl<print_mixin, name_mixin> T>
+template <xcmixin::Impl<print_method, name_method> T>
 void print(T& p) {
     p.print();
     std::cout << "class_name: " << p.name() << std::endl;
 }
+
 int main() {
     MyClass obj;
     print(obj);
@@ -111,32 +259,48 @@ int main() {
 }
 ```
 
+相较于传统基类引用，`Impl` 概念无需实际继承关系，仅需派生类包含指定的 Mixin 注入即可，提供了更灵活的约束方式。
+
 ## 零开销
-- 全部验证在编译期间完成，无需运行时开销。
-- 生成单继承链，无多继承开销，无虚函数表开销。
-- 充分利用EBO优化，注入无数据成员类时总是生成标准布局结构类。
 
-# 应用场景
-- 高性能数学计算库，利用混入提供通用数学函数，同时为特定计算场景提供定制实现。
-- 所有可以编译期决定成员行为的场景，如策略模式、状态模式等。
-- 部分替代OOP最佳实践，使用Impl<method>接受子类引用
+- **编译期完成**：所有验证在编译期间完成，无运行时开销
+- **单一继承链**：生成单继承结构，无多继承或虚函数表开销
+- **EBO 优化**：无数据成员的 Mixin 采用空基类优化，始终保持标准布局
 
-# 兼容性
-- clang/clang-cl 完整支持
-- gcc 完整支持
-- msvc 部分支持
+## 应用场景
 
-# 已知问题
-- mevc 兼容性(参见[examples\overload-msvc-bug.cc](examples\overload-msvc-bug.cc))
+- **高性能数学库**：为通用计算提供默认实现，为特定场景提供定制优化
+- **策略模式**：编译期决定策略行为，消除运行时分派开销
+- **状态模式**：编译期状态管理，无运行时状态对象开销
+- **接口组合**：按需组合不同功能模块
 
-|||
-|--|--|
-|   编译器    |   MSVC                                          |
-|   宏        |   `XCMIXIN_DEF_EXTEND_BEGIN`/`XCMIXIN_IMPL_EXTEND_FOR`/（扩展已有方法时）|
-|   类结构    |   派生类通过 `using Base::func` 引入父类同名重载函数  |
-|   验证逻辑  |   使用 `xcmixin_no_hiding` 宏检查该函数是否被隐藏     |
-|   触发阶段  |   编译期类有效性验证阶段（无运行时影响）         |
-|   现象     |    msvc重载决议失效，无法推断基类类型                    |
+## 兼容性
 
-# 许可证
-本项目基于MIT许可证开源，您可以在遵守许可证条款的前提下自由使用、修改和分发本项目的代码。
+| 编译器 | 支持情况 |
+|--------|----------|
+| clang / clang-cl | 完整支持 |
+| gcc | 完整支持 |
+| MSVC | 部分支持 |
+
+## 已知问题
+
+### MSVC 重载决议缺陷
+
+MSVC 编译器在处理扩展混入宏时存在重载决议缺陷。当使用 `XCMIXIN_DEF_EXTEND_BEGIN` 或 `XCMIXIN_IMPL_EXTEND_FOR` 宏，并通过 `using base::func` 语法引入基类重载函数时，`xcmixin_no_hiding` 检测会在编译期产生误判。
+
+此问题仅影响编译期的有效性验证，不会导致运行时错误。
+
+| 项目 | 说明 |
+|------|------|
+| 受影响编译器 | MSVC |
+| 受影响宏 | `XCMIXIN_DEF_EXTEND_BEGIN` / `XCMIXIN_IMPL_EXTEND_FOR` |
+| 触发条件 | 派生类通过 `using Base::func` 引入基类同名重载函数 |
+| 检测机制 | `xcmixin_no_hiding` 宏 |
+| 影响范围 | 仅编译期类有效性验证阶段 |
+| 运行时行为 | 正常 |
+
+详细说明请参考 [examples/overload-msvc-bug.cc](examples/overload-msvc-bug.cc)。
+
+## 许可证
+
+MIT License

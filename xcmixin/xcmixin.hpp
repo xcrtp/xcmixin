@@ -420,6 +420,7 @@ struct impl_mixin_helper<Derived, mixin> {
     struct type;
     using base = mixin<EmptyBase<Derived>, Derived, meta_mixin<mixin>>;
     struct type : base {
+        using xcmixin_self_class = type;
         using mixin_recorder =
 #ifdef __GNUC__
             struct
@@ -439,6 +440,7 @@ struct impl_mixin_helper<Derived, mixin, mixins...> {
     using base = mixin<deref_type<impl_mixin_helper<Derived, mixins...>>,
                        Derived, meta_mixin<mixin>>;
     struct type : base {
+        using xcmixin_self_class = type;
         using mixin_recorder = base::mixin_recorder::template push_front<mixin>;
         template <typename D = Derived>
         constexpr static bool valid_class() {
@@ -458,7 +460,9 @@ using impl_recorder =
     deref_type<impl_recorder_helper<Derived, recorder_concat<recorders...>>>;
 template <typename Derived, MIXIN... mixins>
 struct impl_recorder_helper<Derived, mixin_recorder<mixins...>> {
-    struct type : deref_type<impl_mixin_helper<Derived, mixins...>> {};
+    struct type : deref_type<impl_mixin_helper<Derived, mixins...>> {
+        using xcmixin_self_class = type;
+    };
 };
 template <MIXIN mixin, typename recorder>
 static constexpr bool has_mixin = false;
@@ -610,6 +614,9 @@ using details::recorder_concat;
 #define xcmixin_const_self (*static_cast<ConstSelf*>(this))
 // Initialize the class, check whether the class is valid
 #define xcmixin_init_class static_assert(valid_class(), "class must be valid")
+// Initialize the template class, check whether the class is valid
+#define xcmixin_init_template(.../* base */) \
+    static_assert(__VA_ARGS__::valid_class(), "class must be valid")
 // Require the mixin to be implemented, check whether the mixin is implemented
 #define xcmixin_require_mixin(mixin)                  \
     static_assert(::xcmixin::is_impl<Derived, mixin>, \
