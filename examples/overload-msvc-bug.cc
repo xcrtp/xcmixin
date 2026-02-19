@@ -1,11 +1,12 @@
 /*
-msvc 下的 bug
-条件	具体场景
-编译器	仅 MSVC（GCC/Clang 完全不受影响）
-使用的宏	XCMIXIN_IMPL_METHOD_EXTEND_FOR（扩展已有方法时）
-类结构	派生类通过 using Base::func 引入父类同名重载函数
-验证逻辑	使用 xcmixin_no_hiding 宏检查该函数是否被隐藏
-触发阶段	编译期 static_assert 阶段（无运行时影响）
+MSVC Compiler Bug: Overload Resolution Failure
+
+Conditions:
+- Compiler: MSVC only (GCC/Clang unaffected)
+- Affected Macros: XCMIXIN_IMPL_EXTEND_FOR (when extending existing methods)
+- Class Structure: Derived class introduces base overloads via using Base::func
+- Validation: xcmixin_no_hiding macro checks for method hiding
+- Trigger Phase: static_assert during compile-time validation (no runtime impact)
 */
 
 #include <type_traits>
