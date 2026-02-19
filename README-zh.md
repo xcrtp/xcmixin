@@ -1,6 +1,13 @@
 # xcmixin
 
+[![GitHub License](https://img.shields.io/github/license/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/releases)
+[![GitHub Tag](https://img.shields.io/github/v/tag/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/tags)
+![GitHub top language](https://img.shields.io/github/languages/top/X-ChenD-Hai/xcmixin?style=flat)
+
 **xcmixin** 是现代 C++ 的静态混入（Mixin）解决方案，通过 CRTP 模式在编译期将多个方法混入类中，无需修改类的原始定义。
+
+[README](README.md)
 
 ## 快速开始
 
