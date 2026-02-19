@@ -3,7 +3,7 @@
 
 #include "xcmixin/xcmixin.hpp"
 class MyClass;
-
+XCMIXIN_IMPL_AVAILABLE(MyClass);
 XCMIXIN_PRE_DECL(print_method)
 XCMIXIN_PRE_DECL(name_method)
 XCMIXIN_PRE_DECL(new_name_method)
@@ -21,9 +21,9 @@ XCMIXIN_METHOD_DEF_BEGIN(name_method)
 std::string name() { return "Unknown"; }
 XCMIXIN_METHOD_DEF_END()
 
-XCMIXIN_METHOD_DEF_BEGIN(new_name_method)
+XCMIXIN_METHOD_DEF_EXTEND_BEGIN(new_name_method, name_method)
+using base::name;
 std::string name() { return "NewName"; }
-std::string name() const { return "NewName"; }
 XCMIXIN_METHOD_DEF_END()
 
 XCMIXIN_METHOD_DEF_BEGIN(print_method)
@@ -42,11 +42,11 @@ std::string name(int i) const { return "const MyClass " + std::to_string(i); }
 std::string name(long i) const { return "const MyClass " + std::to_string(i); }
 XCMIXIN_IMPL_METHOD_END()
 
-XCMIXIN_IMPL_METHOD_BEGIN(new_name_method)
-XCMIXIN_IMPL_METHOD_EXTEND_FOR(name_method, MyClass)
-using base::name;
+// XCMIXIN_IMPL_METHOD_BEGIN(new_name_method)
+// XCMIXIN_IMPL_METHOD_EXTEND_FOR(name_method, MyClass)
+// using base::name;
 
-XCMIXIN_IMPL_METHOD_END()
+// XCMIXIN_IMPL_METHOD_END()
 
 using recorder = xcmixin::method_recorder<print_method, new_name_method,
                                           dosomethings1_method>;
