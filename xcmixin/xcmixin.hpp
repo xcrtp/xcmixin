@@ -101,11 +101,12 @@ template <typename T>
 static constexpr bool is_category = fn::contains<category_list, T>;
 }  // namespace member_category
 
-// template method validator
+// template mixin validator
 template <typename Derived, typename Base, typename expected_return_type,
           typename return_type>
 static constexpr bool is_valid =
-    (std::is_base_of_v<Base, Derived> || std::is_same_v<Base, Derived>) &&
+    (std::is_base_of_v<Base, Derived> || std::is_same_v<Base, Derived> ||
+     std::is_void_v<Derived> || std::is_void_v<Base>) &&
     (fn::contains<expected_return_type, return_type> ||
      fn::is_empty<expected_return_type>);
 template <typename... Args>
@@ -335,8 +336,8 @@ struct overload {
 }  // namespace details
 
 // core mixin framework
-// simplify method declaration
-#define METHOD                              \
+// simplify mixin declaration
+#define MIXIN                               \
     template <typename, typename, typename> \
     class
 
@@ -349,48 +350,48 @@ struct EmptyBase {
     }
 };
 
-// method common validator, all special methods will be call it to validate
+// mixin common validator, all special mixins will be call it to validate
 template <typename meta>
-struct method_validator {
-    template <typename MethodClass, typename Derived>
-    static consteval bool valid_method() {
+struct mixin_validator {
+    template <typename MixinClass, typename Derived>
+    static consteval bool valid_mixin() {
         return true;
     }
 };
 // core framework implementation
 namespace details {
-// method recorder, store all methods in it
-template <METHOD... methods>
-struct method_recorder {
-    template <METHOD... ext_methods>
-    using push_back = method_recorder<methods..., ext_methods...>;
+// mixin recorder, store all mixins in it
+template <MIXIN... mixins>
+struct mixin_recorder {
+    template <MIXIN... ext_mixins>
+    using push_back = mixin_recorder<mixins..., ext_mixins...>;
 
-    template <METHOD... ext_methods>
-    using push_front = method_recorder<ext_methods..., methods...>;
+    template <MIXIN... ext_mixins>
+    using push_front = mixin_recorder<ext_mixins..., mixins...>;
     template <typename T>
     struct concat_helper;
     template <typename T>
     using concat = deref_type<concat_helper<T>>;
-    template <METHOD... ext_methods>
-    struct concat_helper<method_recorder<ext_methods...>>
-        : return_type<method_recorder<methods..., ext_methods...>> {};
+    template <MIXIN... ext_mixins>
+    struct concat_helper<mixin_recorder<ext_mixins...>>
+        : return_type<mixin_recorder<mixins..., ext_mixins...>> {};
 };
 
-// meta method, store method class and method type
-template <METHOD method_>
-struct meta_method {
-    template <typename Base, typename Derived, typename method_type>
-    using method = method_<Base, Derived, method_type>;
+// meta mixin, store mixin class and mixin type
+template <MIXIN m_>
+struct meta_mixin {
+    template <typename Base, typename Derived, typename m_type>
+    using mixin = m_<Base, Derived, m_type>;
 };
 
-// method recorder concat helper, concat all method recorders
+// mixin recorder concat helper, concat all mixin recorders
 template <typename... Ts>
 struct recorder_concat_helper;
 template <typename... Ts>
 using recorder_concat = deref_type<recorder_concat_helper<Ts...>>;
 
 template <>
-struct recorder_concat_helper<> : return_type<method_recorder<>> {};
+struct recorder_concat_helper<> : return_type<mixin_recorder<>> {};
 template <typename T>
 struct recorder_concat_helper<T> : return_type<T> {};
 template <typename T, typename... Ts>
@@ -398,104 +399,103 @@ struct recorder_concat_helper<T, Ts...>
     : return_type<typename T::template concat<
           deref_type<recorder_concat_helper<Ts...>>>> {};
 
-// method base class validator, check if method base class is valid
-template <typename Method, typename Derived, typename = void>
+// mixin base class validator, check if mixin base class is valid
+template <typename Mixin, typename Derived, typename = void>
 constexpr bool vaild_base_class = true;
-template <typename Method, typename Derived>
+template <typename Mixin, typename Derived>
 constexpr auto
-    vaild_base_class<Method, Derived, std::void_t<typename Method::base_meta>> =
-        method_validator<typename Method::base_meta>::template valid_method<
-            typename Method::base, Derived>() &&
-        vaild_base_class<typename Method::base, Derived>;
+    vaild_base_class<Mixin, Derived, std::void_t<typename Mixin::base_meta>> =
+        mixin_validator<typename Mixin::base_meta>::template valid_mixin<
+            typename Mixin::base, Derived>() &&
+        vaild_base_class<typename Mixin::base, Derived>;
 
-// the core inherit chain generator, inherit impl_methods<...> to mixin all
-// methods
-template <typename Derived, METHOD... methods>
-struct impl_methods_helper;
-template <typename Derived, METHOD... methods>
-using impl_methods = deref_type<impl_methods_helper<Derived, methods...>>;
-template <typename Derived, METHOD method>
-struct impl_methods_helper<Derived, method> {
+// the core inherit chain generator, inherit impl_mixin<...> to mixin all
+// mixins
+template <typename Derived, MIXIN... mixins>
+struct impl_mixin_helper;
+template <typename Derived, MIXIN... mixins>
+using impl_mixin = deref_type<impl_mixin_helper<Derived, mixins...>>;
+template <typename Derived, MIXIN mixin>
+struct impl_mixin_helper<Derived, mixin> {
     struct type;
-    using base = method<EmptyBase<Derived>, Derived, meta_method<method>>;
+    using base = mixin<EmptyBase<Derived>, Derived, meta_mixin<mixin>>;
     struct type : base {
-        using method_recorder =
+        using mixin_recorder =
 #ifdef __GNUC__
             struct
 #endif
-            method_recorder<method>;
+            mixin_recorder<mixin>;
         template <typename D = Derived>
         constexpr static bool valid_class() {
-            return ::xcmixin::method_validator<meta_method<method>>::
-                       template valid_method<base, Derived>() &&
+            return ::xcmixin::mixin_validator<meta_mixin<mixin>>::
+                       template valid_mixin<base, Derived>() &&
                    vaild_base_class<base, Derived> && base::valid_class();
         }
     };
 };
-template <typename Derived, METHOD method, METHOD... methods>
-struct impl_methods_helper<Derived, method, methods...> {
+template <typename Derived, MIXIN mixin, MIXIN... mixins>
+struct impl_mixin_helper<Derived, mixin, mixins...> {
     struct type;
-    using base = method<deref_type<impl_methods_helper<Derived, methods...>>,
-                        Derived, meta_method<method>>;
+    using base = mixin<deref_type<impl_mixin_helper<Derived, mixins...>>,
+                       Derived, meta_mixin<mixin>>;
     struct type : base {
-        using method_recorder =
-            base::method_recorder::template push_front<method>;
+        using mixin_recorder = base::mixin_recorder::template push_front<mixin>;
         template <typename D = Derived>
         constexpr static bool valid_class() {
-            return ::xcmixin::method_validator<meta_method<method>>::
-                       template valid_method<base, Derived>() &&
+            return ::xcmixin::mixin_validator<meta_mixin<mixin>>::
+                       template valid_mixin<base, Derived>() &&
                    vaild_base_class<base, Derived> && base::valid_class();
         }
     };
 };
 
-// method recorder inherit chain generator, inherit impl_methods_recorders<...>
-// to mixin all methods in the recorders
+// mixin recorder inherit chain generator, inherit impl_mixin_recorders<...>
+// to mixin all mixins in the recorders
 template <typename Derived, typename recorders>
-struct impl_methods_recorder_helper;
+struct impl_recorder_helper;
 template <typename Derived, typename... recorders>
-using impl_methods_recorders = deref_type<
-    impl_methods_recorder_helper<Derived, recorder_concat<recorders...>>>;
-template <typename Derived, METHOD... methods>
-struct impl_methods_recorder_helper<Derived, method_recorder<methods...>> {
-    struct type : deref_type<impl_methods_helper<Derived, methods...>> {};
+using impl_recorder =
+    deref_type<impl_recorder_helper<Derived, recorder_concat<recorders...>>>;
+template <typename Derived, MIXIN... mixins>
+struct impl_recorder_helper<Derived, mixin_recorder<mixins...>> {
+    struct type : deref_type<impl_mixin_helper<Derived, mixins...>> {};
 };
-template <METHOD method, typename recorder>
-static constexpr bool has_method = false;
+template <MIXIN mixin, typename recorder>
+static constexpr bool has_mixin = false;
 
-template <METHOD method, METHOD... methods>
-static constexpr bool has_method<method, method_recorder<methods...>> =
-    (std::is_same_v<meta_method<method>, meta_method<methods>> || ...);
+template <MIXIN mixin, MIXIN... mixins>
+static constexpr bool has_mixin<mixin, mixin_recorder<mixins...>> =
+    (std::is_same_v<meta_mixin<mixin>, meta_mixin<mixins>> || ...);
 
-template <typename Derived, METHOD... method>
-static constexpr bool is_impl_method =
-    (... || has_method<method, typename Derived::method_recorder>);
+template <typename Derived, MIXIN... mixin>
+static constexpr bool is_impl =
+    (... || has_mixin<mixin, typename Derived::mixin_recorder>);
 template <typename T, typename = void>
 constexpr size_t class_size = 0;
 template <typename T>
 constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
 
-// concept, check if a class is implemented a method
-template <typename T, METHOD... method>
-concept Impl = is_impl_method<T, method...>;
+// concept, check if a class is implemented a mixin
+template <typename T, MIXIN... mixin>
+concept Impl = is_impl<T, mixin...>;
 
 }  // namespace details
-#undef METHOD
+#undef MIXIN
 // traits
 using details::class_size;
-using details::has_method;
-using details::is_impl_method;
+using details::has_mixin;
+using details::is_impl;
 // concepts
 using details::Impl;
 // overload
 using details::overload;
 using details::ret;
 using namespace details::member_category;
-// methods
-using details::impl_methods;
-using details::impl_methods_recorders;
-using details::meta_method;
-using details::method_recorder;
+// mixins
+using details::impl_mixin;
+using details::impl_recorder;
+using details::meta_mixin;
+using details::mixin_recorder;
 using details::recorder_concat;
 
 }  // namespace xcmixin
@@ -523,98 +523,108 @@ using details::recorder_concat;
     __VA_ARGS__ __XCMIXIN_PARAM_SPIITER(__VA_ARGS__)
 
 // user macro api
-#define XCMIXIN_METHOD_INIT()           \
+
+// Check whether the implementation mixin can be injected, only applicable to
+// non-template classes
+#define XCMIXIN_INIT()                  \
     using Self = std::decay_t<Derived>; \
     using ConstSelf = const Self;       \
-    using MethodClass = meta::template method<Base, Self, meta>;
-#define XCMIXIN_METHOD_REQUIRE(name, ...)                   \
-    namespace xcmixin {                                     \
-    template <>                                             \
-    struct method_validator<::xcmixin::meta_method<name>> { \
-        template <typename MethodClass, typename Derived>   \
-        static consteval bool valid_method() {              \
-            __VA_ARGS__                                     \
-            return true;                                    \
-        }                                                   \
-    };                                                      \
+    using MixinClass = meta::template mixin<Base, Self, meta>;
+#define XCMIXIN_IMPL_AVAILABLE(name)                                         \
+    static_assert(::xcmixin::class_size<name> == 0,                          \
+                  "class " #name                                             \
+                  " must be incomplete before impl, you must define mixins " \
+                  "before define class")
+
+#define XCMIXIN_REQUIRE(name, ...)                        \
+    namespace xcmixin {                                   \
+    template <>                                           \
+    struct mixin_validator<::xcmixin::meta_mixin<name>> { \
+        template <typename MixinClass, typename Derived>  \
+        static consteval bool valid_mixin() {             \
+            __VA_ARGS__                                   \
+            return true;                                  \
+        }                                                 \
+    };                                                    \
     }
 
-#define XCMIXIN_PRE_DECL(name)                                \
+#define XCMIXIN_PRE_DECL(mixin)                               \
     template <typename Base, typename Derived, typename meta> \
-    struct name;
-#define XCMIXIN_METHOD_DEF_BEGIN(name)                        \
+    struct mixin;
+
+#define XCMIXIN_DEF_BEGIN(mixin)                              \
     template <typename Base, typename Derived, typename meta> \
-    struct name : Base {                                      \
-        XCMIXIN_METHOD_INIT()
-#define XCMIXIN_METHOD_DEF_EXTEND_BEGIN(name, ext_method)           \
-    template <typename Base, typename Derived, typename meta>       \
-    struct name : ext_method<Base, Derived, meta> {                 \
-        using Self = std::decay_t<Derived>;                         \
-        using ConstSelf = const Self;                               \
-        using base = ext_method<Base, Self, meta>;                  \
-        using base_meta = ::xcmixin::meta_method<ext_method>;       \
-        using method_recorder =                                     \
-            base::method_recorder::template push_front<ext_method>; \
-        using MethodClass = meta::template method<base, Self, meta>;
-#define XCMIXIN_METHOD_DEF_END() \
-    }                            \
+    struct mixin : Base {                                     \
+        XCMIXIN_INIT()
+
+#define XCMIXIN_DEF_EXTEND_BEGIN(mixin_, ext_mixin)               \
+    template <typename Base, typename Derived, typename meta>     \
+    struct mixin_ : ext_mixin<Base, Derived, meta> {              \
+        using Self = std::decay_t<Derived>;                       \
+        using ConstSelf = const Self;                             \
+        using base = ext_mixin<Base, Self, meta>;                 \
+        using base_meta = ::xcmixin::meta_mixin<ext_mixin>;       \
+        using mixin_recorder =                                    \
+            base::mixin_recorder::template push_front<ext_mixin>; \
+        using MixinClass = meta::template mixin<base, Self, meta>;
+
+#define XCMIXIN_DEF_END() \
+    }                     \
     ;
-#define XCMIXIN_METHOD_DECLARE(name) \
-    XCMIXIN_METHOD_DEF_BEGIN(name)   \
+#define XCMIXIN_DECLARE(mixin) \
+    XCMIXIN_DEF_BEGIN(mixin)   \
     }
 
-#define XCMIXIN_IMPL_METHOD_BEGIN(name, ...)                                   \
+#define XCMIXIN_IMPL_BEGIN(mixin, ...)                                         \
     template <typename Base, typename meta __XCMIXIN_SUFIX_PARAM(__VA_ARGS__)> \
-        struct name < Base,
-#define XCMIXIN_IMPL_METHOD_BEGIN_WITH_REQUIRES(name, require_statement, ...)  \
+        struct mixin < Base,
+#define XCMIXIN_IMPL_BEGIN_WITH_REQUIRES(mixin, require_statement, ...)        \
     template <typename Base, typename meta __XCMIXIN_SUFIX_PARAM(__VA_ARGS__)> \
         requires(require_statement)                                            \
-    struct name < Base,
-#define XCMIXIN_IMPL_METHOD_FOR(...)                       \
+    struct mixin < Base,
+#define XCMIXIN_IMPL_FOR(...)                              \
     __VA_ARGS__, meta > : Base {                           \
         using Self = __VA_ARGS__;                          \
         using ConstSelf = const std::remove_const_t<Self>; \
-        using MethodClass = meta::template method<Base, Self, meta>;
-#define XCMIXIN_IMPL_METHOD_EXTEND_FOR(ext_method, ...)             \
-    __VA_ARGS__, meta > : ext_method<Base, __VA_ARGS__, meta> {     \
-        using Self = __VA_ARGS__;                                   \
-        using ConstSelf = const std::remove_const_t<Self>;          \
-        using base = ext_method<Base, Self, meta>;                  \
-        using base_meta = ::xcmixin::meta_method<ext_method>;       \
-        using method_recorder =                                     \
-            base::method_recorder::template push_front<ext_method>; \
-        using MethodClass = meta::template method<base, Self, meta>;
+        using MixinClass = meta::template mixin<Base, Self, meta>;
+#define XCMIXIN_IMPL_EXTEND_FOR(ext_mixin, ...)                   \
+    __VA_ARGS__, meta > : ext_mixin<Base, __VA_ARGS__, meta> {    \
+        using Self = __VA_ARGS__;                                 \
+        using ConstSelf = const std::remove_const_t<Self>;        \
+        using base = ext_mixin<Base, Self, meta>;                 \
+        using base_meta = ::xcmixin::meta_mixin<ext_mixin>;       \
+        using mixin_recorder =                                    \
+            base::mixin_recorder::template push_front<ext_mixin>; \
+        using MixinClass = meta::template mixin<base, Self, meta>;
 
-#define XCMIXIN_METHOD_REQUIRES(...)                  \
+#define XCMIXIN_REQUIRES(...)                         \
     template <typename Derived = Self>                \
     constexpr static bool valid_class() {             \
         __VA_ARGS__                                   \
         return Base::template valid_class<Derived>(); \
     }
-#define XCMIXIN_IMPL_METHOD_END() \
-    }                             \
+#define XCMIXIN_IMPL_END() \
+    }                      \
     ;
-// Check whether the implementation method can be injected, only applicable to
-// non-template classes
-#define XCMIXIN_IMPL_AVAILABLE(name)                                          \
-    static_assert(::xcmixin::class_size<name> == 0,                           \
-                  "class " #name                                              \
-                  " must be incomplete before impl, you must define methods " \
-                  "before define class")
-
 #define xcmixin_self (*static_cast<Self*>(this))
 #define xcmixin_const_self (*static_cast<ConstSelf*>(this))
 // Initialize the class, check whether the class is valid
 #define xcmixin_init_class static_assert(valid_class(), "class must be valid")
-// Require the method to be implemented, check whether the method is implemented
-#define xcmixin_require_method(method)                        \
-    static_assert(::xcmixin::is_impl_method<Derived, method>, \
-                  "Derived must be derived from " #method)
-// Require the method to be not shadowed, check whether the method is not
+// Require the mixin to be implemented, check whether the mixin is implemented
+#define xcmixin_require_mixin(mixin)                  \
+    static_assert(::xcmixin::is_impl<Derived, mixin>, \
+                  "Derived must be derived from " #mixin)
+#define xcmixin_require_method(name, ...)                                \
+    static_assert(                                                       \
+        ::xcmixin::overload<__VA_ARGS__>::template overloader<void>::of( \
+            &Derived::name),                                             \
+        "Derived must have method " #name " with signature " #__VA_ARGS__)
+// Require the mixin to be not shadowed, check whether the mixin is not
 // shadowed
-#define xcmixin_no_hiding(name, ...)                                         \
-    static_assert(::xcmixin::overload<__VA_ARGS__>::template overloader<     \
-                      MethodClass>::of(&MethodClass::name) ==                \
-                      ::xcmixin::overload<__VA_ARGS__>::template overloader< \
-                          MethodClass>::of(&Derived::name),                  \
-                  "method " #name " is shadowed ")
+#define xcmixin_no_hiding(name, ...)                                           \
+    static_assert(                                                             \
+        ::xcmixin::overload<__VA_ARGS__>::template overloader<MixinClass>::of( \
+            &MixinClass::name) ==                                              \
+            ::xcmixin::overload<__VA_ARGS__>::template overloader<             \
+                MixinClass>::of(&Derived::name),                               \
+        "mixin " #name " is shadowed ")
