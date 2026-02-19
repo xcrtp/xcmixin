@@ -1,6 +1,12 @@
+[Chinese README](README-zh.md)
+
 # xcmixin
 
-[**中文文档**](README_CN.md)
+[![GitHub License](https://img.shields.io/github/license/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/releases)
+[![GitHub Tag](https://img.shields.io/github/v/tag/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/tags)
+![GitHub top language](https://img.shields.io/github/languages/top/X-ChenD-Hai/xcmixin?style=flat)
+
 
 **xcmixin** is a modern C++ static mixin solution that uses CRTP to compose multiple methods into classes at compile time, without modifying the original class definition.
 
