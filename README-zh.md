@@ -310,4 +310,4 @@ MSVC 编译器在处理扩展混入宏时存在重载决议缺陷。当使用 `X
 
 ## 许可证
 
-MIT License
+[MIT License](https://github.com/X-ChenD-Hai/xcmixin/blob/main/LICENSE)
