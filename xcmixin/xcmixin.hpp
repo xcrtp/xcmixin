@@ -480,6 +480,7 @@ template <typename T, METHOD... method>
 concept Impl = is_impl_method<T, method...>;
 
 }  // namespace details
+#undef METHOD
 // traits
 using details::class_size;
 using details::has_method;
@@ -617,4 +618,3 @@ using details::recorder_concat;
                       ::xcmixin::overload<__VA_ARGS__>::template overloader< \
                           MethodClass>::of(&Derived::name),                  \
                   "method " #name " is shadowed ")
-#undef METHOD
