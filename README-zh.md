@@ -25,8 +25,8 @@ XCMIXIN_METHOD_REQUIRE(print_method,
 XCMIXIN_METHOD_REQUIRE(print_method,
                        xcmixin_require_method(name_method););
 
-XCMIXIN_METHOD_REQUIRE(name_method, xcmixin_no_hiding(name, long);
-                       xcmixin_no_hiding(name, int, const_););
+XCMIXIN_METHOD_REQUIRE(name_method, xcmixin_no_hiding(name, long,int); // 确保name(int,long) [const/volatile/const volatile]  成员存在且不被隐藏
+                       xcmixin_no_hiding(name, int, const_);); // 确保name(int) const成员存在且不被隐藏
 
 ```
 
@@ -66,7 +66,7 @@ XCMIXIN_METHOD_DEF_BEGIN(name_method)
 std::string name() { return "Unknown"; }
 XCMIXIN_METHOD_DEF_END()
 XCMIXIN_METHOD_DEF_EXTEND_BEGIN(new_name_method, name_method)
-using base::name;
+using base::name; // 提供base别名指代直接基类
 std::string name() { return "NewName"; }
 XCMIXIN_METHOD_DEF_END()
 ```
