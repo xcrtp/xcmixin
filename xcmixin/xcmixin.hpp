@@ -345,10 +345,11 @@ struct overload {
 
 // core mixin framework
 // simplify mixin declaration
-#define MIXIN                               \
+#define XCMIXIN_MIXIN_TEMPLATE_PARAM          \
     template <typename, typename, typename> \
     class
 
+#define MIXIN XCMIXIN_MIXIN_TEMPLATE_PARAM
 // root empty base class for inherit chain
 template <typename Derived>
 struct EmptyBase {
