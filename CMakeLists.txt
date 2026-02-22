@@ -10,7 +10,7 @@ target_include_directories( xcmixin INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-
+add_library(xcmixin::xcmixin ALIAS xcmixin)
 if(XCMIXIN_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
