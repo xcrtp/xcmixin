@@ -345,7 +345,7 @@ struct overload {
 
 // core mixin framework
 // simplify mixin declaration
-#define XCMIXIN_MIXIN_TEMPLATE_PARAM          \
+#define XCMIXIN_MIXIN_TEMPLATE_PARAM        \
     template <typename, typename, typename> \
     class
 
@@ -624,8 +624,11 @@ using details::recorder_concat;
 // Initialize the class, check whether the class is valid
 #define xcmixin_init_class static_assert(valid_class(), "class must be valid")
 // Initialize the template class, check whether the class is valid
-#define xcmixin_init_template(.../* base */) \
+#define xcmixin_init_template(... /* base */) \
     static_assert(__VA_ARGS__::valid_class(), "class must be valid")
+#define xcmixin_friend(mixin)                                 \
+    template <typename Base, typename Derived, typename meta> \
+    friend struct mixin
 // Require the mixin to be implemented, check whether the mixin is implemented
 #define xcmixin_require_mixin(mixin)                  \
     static_assert(::xcmixin::is_impl<Derived, mixin>, \
