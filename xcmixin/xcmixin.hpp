@@ -4,7 +4,7 @@
 // Copyright (c) 2024 Tian Li
 // Licensed under the MIT License.
 //
-// https://github.com/X-ChenD-Hai/xcmixin
+// https://github.com/xcrtp/xcmixin
 
 #pragma once
 #include <type_traits>
