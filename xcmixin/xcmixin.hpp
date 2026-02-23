@@ -488,6 +488,39 @@ constexpr size_t class_size = 0;
 template <typename T>
 constexpr size_t class_size<T, std::void_t<decltype(sizeof(T))>> = sizeof(T);
 
+// Detects whether 'this' pointer has const qualifier.
+// Primary template is invalid; specializations handle T* and const T*.
+template <typename This>
+static constexpr bool is_const_this = invalid_value<This>;
+template <typename This>
+static constexpr bool is_const_this<This*> = false;
+template <typename This>
+static constexpr bool is_const_this<const This*> = true;
+
+// Detects whether 'this' pointer has volatile qualifier.
+// Primary template is invalid; specializations handle T* and volatile T*.
+template <typename This>
+static constexpr bool is_volatile_this = invalid_value<This>;
+template <typename This>
+static constexpr bool is_volatile_this<This*> = false;
+template <typename This>
+static constexpr bool is_volatile_this<volatile This*> = true;
+
+// Infers Self type with const qualifier based on 'this' pointer's cv-qualifiers.
+template <typename This, typename Self>
+using infer_const_self =
+    std::conditional_t<is_const_this<This>, const Self, Self>;
+// Infers Self type with volatile qualifier based on 'this' pointer's cv-qualifiers.
+template <typename This, typename Self>
+using infer_volatile_self =
+    std::conditional_t<is_volatile_this<This>, volatile Self, Self>;
+
+// Infers complete Self type with both const and volatile qualifiers
+// based on 'this' pointer's cv-qualifiers. Enables xcmixin_self to return
+// const-correct pointer type in const member functions.
+template <typename This, typename Self>
+using infer_self = infer_const_self<This, infer_volatile_self<This, Self>>;
+
 // concept, check if a class is implemented a mixin
 template <typename T, MIXIN... mixin>
 concept Impl = is_impl<T, mixin...>;
@@ -507,6 +540,7 @@ using namespace details::member_category;
 // mixins
 using details::impl_mixin;
 using details::impl_recorder;
+using details::infer_self;
 using details::meta_mixin;
 using details::mixin_recorder;
 using details::recorder_concat;
@@ -619,7 +653,11 @@ using details::recorder_concat;
 #define XCMIXIN_IMPL_END() \
     }                      \
     ;
-#define xcmixin_self (*static_cast<Self*>(this))
+// Casts 'this' to derived type with cv-qualifiers inferred from 'this' pointer.
+// In const member functions, returns const-correct pointer type.
+#define xcmixin_self \
+    (*static_cast<::xcmixin::infer_self<decltype(this), Self>*>(this))
+// Casts 'this' to const derived type
 #define xcmixin_const_self (*static_cast<ConstSelf*>(this))
 // Initialize the class, check whether the class is valid
 #define xcmixin_init_class static_assert(valid_class(), "class must be valid")
