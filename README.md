@@ -2,10 +2,10 @@
 
 # xcmixin
 
-[![GitHub License](https://img.shields.io/github/license/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/releases)
-[![GitHub Tag](https://img.shields.io/github/v/tag/X-ChenD-Hai/xcmixin)](https://github.com/X-ChenD-Hai/xcmixin/tags)
-![GitHub top language](https://img.shields.io/github/languages/top/X-ChenD-Hai/xcmixin?style=flat)
+[![GitHub License](https://img.shields.io/github/license/xcrtp/xcmixin)](https://github.com/xcrtp/xcmixin/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/xcrtp/xcmixin)](https://github.com/xcrtp/xcmixin/releases)
+[![GitHub Tag](https://img.shields.io/github/v/tag/xcrtp/xcmixin)](https://github.com/xcrtp/xcmixin/tags)
+![GitHub top language](https://img.shields.io/github/languages/top/xcrtp/xcmixin?style=flat)
 
 
 **xcmixin** is a modern C++ static mixin solution that uses CRTP to compose multiple methods into classes at compile time, without modifying the original class definition.
@@ -311,4 +311,4 @@ See [examples/overload-msvc-bug.cc](examples/overload-msvc-bug.cc) for details.
 
 ## License
 
-[MIT License](https://github.com/X-ChenD-Hai/xcmixin/blob/main/LICENSE)
+[MIT License](https://github.com/xcrtp/xcmixin/blob/main/LICENSE)
