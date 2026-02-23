@@ -29,8 +29,7 @@ std::string name() { return "NewName"; }
 XCMIXIN_DEF_END()
 
 XCMIXIN_DEF_BEGIN(print_method)
-void print() {
-    std::cout << xcmixin_self.name() << std::endl;
+void print() const {
     std::cout << xcmixin_self.name(11) << std::endl;
     std::cout << xcmixin_const_self.name(11) << std::endl;
 }
