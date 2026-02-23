@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.10..4.1)
-
-project(xcmixin LANGUAGES CXX VERSION 1.0.1)
+include(cmake/get_version.cmake)
+xc_get_project_version(PROJECT_VERSION)
+project(xcmixin LANGUAGES CXX VERSION ${PROJECT_VERSION})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GNUInstallDirs)
-option(XCMIXIN_BUILD_EXAMPLES "Build xcmixin examples" ON)
+option(XCMIXIN_BUILD_EXAMPLES "Build xcmixin examples" OFF)
 add_library(xcmixin INTERFACE)
 target_include_directories( xcmixin INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -25,7 +26,7 @@ install(
     EXPORT xcmixin
     NAMESPACE xcmixin::
     FILE xcmixinConfig.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/xcmixin/
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xcmixin/
 )
 
 install(
