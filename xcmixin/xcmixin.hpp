@@ -506,11 +506,13 @@ static constexpr bool is_volatile_this<This*> = false;
 template <typename This>
 static constexpr bool is_volatile_this<volatile This*> = true;
 
-// Infers Self type with const qualifier based on 'this' pointer's cv-qualifiers.
+// Infers Self type with const qualifier based on 'this' pointer's
+// cv-qualifiers.
 template <typename This, typename Self>
 using infer_const_self =
     std::conditional_t<is_const_this<This>, const Self, Self>;
-// Infers Self type with volatile qualifier based on 'this' pointer's cv-qualifiers.
+// Infers Self type with volatile qualifier based on 'this' pointer's
+// cv-qualifiers.
 template <typename This, typename Self>
 using infer_volatile_self =
     std::conditional_t<is_volatile_this<This>, volatile Self, Self>;
