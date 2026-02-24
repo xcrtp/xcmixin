@@ -10,3 +10,6 @@
 !/README.md
 !/examples/
 !/cmake/
+!/examples/
+!/.github/
+!/tests/

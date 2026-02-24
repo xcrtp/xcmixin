@@ -5,7 +5,9 @@ project(xcmixin LANGUAGES CXX VERSION ${PROJECT_VERSION})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GNUInstallDirs)
+enable_testing()
 option(XCMIXIN_BUILD_EXAMPLES "Build xcmixin examples" OFF)
+option(XCMIXIN_BUILD_TESTS "Build xcmixin tests" ON)
 add_library(xcmixin INTERFACE)
 target_include_directories( xcmixin INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -14,6 +16,9 @@ target_include_directories( xcmixin INTERFACE
 add_library(xcmixin::xcmixin ALIAS xcmixin)
 if(XCMIXIN_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+if(XCMIXIN_BUILD_TESTS)
+    add_subdirectory(tests)
 endif()
 
 include(CMakePackageConfigHelpers)
