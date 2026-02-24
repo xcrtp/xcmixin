@@ -63,6 +63,60 @@ int main() {
 }
 ```
 
+### 组合与注入
+
+通过 `mixin_recorder` 灵活组合多个混入：
+
+```cpp
+using recorder = xcmixin::mixin_recorder<print_method, new_name_method,
+                                          dosomethings1_method>;
+```
+
+将组合后的混入注入到目标类：
+
+```cpp
+class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
+    xcmixin_init_class;  // 须在类定义末尾调用以进行编译期验证
+};
+```
+
+### 使用方式
+
+与普通成员函数调用方式相同：
+
+```cpp
+MyClass obj;
+obj.print();
+obj.name();
+obj.dosomethings1();
+```
+
+### 泛型约束
+
+使用 `Impl` 概念对模板类型进行约束，作为传统基类引用的替代和增强：
+
+```cpp
+template <xcmixin::Impl<print_method, name_method> T>
+void print(T& p) {
+    p.print();
+    std::cout << "class_name: " << p.name() << std::endl;
+}
+
+int main() {
+    MyClass obj;
+    print(obj);
+    return 0;
+}
+```
+
+与传统的基类引用相比，`Impl` 概念不需要实际的继承关系，只需要派生类包含指定的混入注入，提供更灵活的约束方式。
+
+## 零开销
+
+- **编译期完成**：所有验证均在编译期完成，无运行时开销
+- **单继承链**：生成单继承结构，无多重继承或 vtable 开销
+- **EBO 优化**：无数据成员的混入使用空基类优化，保持标准布局
+
 ## 安全
 
 编译期验证确保混入的有效性与正确性：
@@ -219,60 +273,6 @@ int main() {
     obj3.say_hello();  // 输出: MyTemplate<float> hello
 }
 ```
-
-### 组合与注入
-
-通过 `mixin_recorder` 灵活组合多个混入：
-
-```cpp
-using recorder = xcmixin::mixin_recorder<print_method, new_name_method,
-                                          dosomethings1_method>;
-```
-
-将组合后的 Mixin 注入目标类：
-
-```cpp
-class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
-    xcmixin_init_class;  // 须在类定义末尾调用，执行编译期验证
-};
-```
-
-### 使用方式
-
-与普通成员函数无异：
-
-```cpp
-MyClass obj;
-obj.print();
-obj.name();
-obj.dosomethings1();
-```
-
-### 泛型约束
-
-使用 `Impl` 概念约束模板类型，作为传统基类引用的替代与增强：
-
-```cpp
-template <xcmixin::Impl<print_method, name_method> T>
-void print(T& p) {
-    p.print();
-    std::cout << "class_name: " << p.name() << std::endl;
-}
-
-int main() {
-    MyClass obj;
-    print(obj);
-    return 0;
-}
-```
-
-相较于传统基类引用，`Impl` 概念无需实际继承关系，仅需派生类包含指定的 Mixin 注入即可，提供了更灵活的约束方式。
-
-## 零开销
-
-- **编译期完成**：所有验证在编译期间完成，无运行时开销
-- **单一继承链**：生成单继承结构，无多继承或虚函数表开销
-- **EBO 优化**：无数据成员的 Mixin 采用空基类优化，始终保持标准布局
 
 ## 应用场景
 
