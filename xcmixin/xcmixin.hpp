@@ -7,6 +7,7 @@
 // https://github.com/xcrtp/xcmixin
 
 #pragma once
+#include <cstddef>
 #include <type_traits>
 
 namespace xcmixin {
