@@ -26,12 +26,13 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Setup C++ toolchain
-        uses: egor-tensin/setup-cpp@v4
-        with:
-          cmake: true
-          ninja: true
-          # Default compiler per OS: clang on macOS/Linux, MSVC on Windows
+      - name: Setup CMake and Ninja
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y cmake ninja-build
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            brew install cmake ninja
+          fi
 
       - name: Configure CMake
         run: |
