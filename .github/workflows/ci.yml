@@ -42,14 +42,18 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Run examples
+      - name: Build and Run examples (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            Get-ChildItem -Path build/examples -Filter "*_example.exe" | ForEach-Object { & $_.FullName }
-          else
-            for exe in build/examples/*_example; do
-              if [ -f "$exe" ]; then
-                "$exe"
-              fi
-            done
-          fi
+          cmake --build build --parallel
+          for exe in build/examples/*_example; do
+            if [ -f "$exe" ]; then
+              "$exe"
+            fi
+          done
+
+      - name: Build and Run examples (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cmake --build build --parallel
+          Get-ChildItem -Path build/examples -Filter "*.exe" | ForEach-Object { & $_.FullName }
