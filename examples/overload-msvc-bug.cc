@@ -6,7 +6,8 @@ Conditions:
 - Affected Macros: XCMIXIN_IMPL_EXTEND_FOR (when extending existing methods)
 - Class Structure: Derived class introduces base overloads via using Base::func
 - Validation: xcmixin_no_hiding macro checks for method hiding
-- Trigger Phase: static_assert during compile-time validation (no runtime impact)
+- Trigger Phase: static_assert during compile-time validation
+               (no runtime impact)
 */
 
 #include <type_traits>
