@@ -64,6 +64,60 @@ int main() {
 }
 ```
 
+### Combination and Injection
+
+Combine multiple mixins flexibly via `mixin_recorder`:
+
+```cpp
+using recorder = xcmixin::mixin_recorder<print_method, new_name_method,
+                                          dosomethings1_method>;
+```
+
+Inject the combined mixins into the target class:
+
+```cpp
+class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
+    xcmixin_init_class;  // Must be called at the end of class definition for compile-time validation
+};
+```
+
+### Usage
+
+Identical to regular member function calls:
+
+```cpp
+MyClass obj;
+obj.print();
+obj.name();
+obj.dosomethings1();
+```
+
+### Generic Constraints
+
+Use the `Impl` concept to constrain template types, as an alternative and enhancement to traditional base class references:
+
+```cpp
+template <xcmixin::Impl<print_method, name_method> T>
+void print(T& p) {
+    p.print();
+    std::cout << "class_name: " << p.name() << std::endl;
+}
+
+int main() {
+    MyClass obj;
+    print(obj);
+    return 0;
+}
+```
+
+Compared to traditional base class references, the `Impl` concept requires no actual inheritance relationship—just that the derived class includes the specified mixin injection—providing more flexible constraints.
+
+## Zero Overhead
+
+- **Compile-time completion**: All validation occurs at compile time with no runtime overhead
+- **Single inheritance chain**: Generates a single-inheritance structure without multiple inheritance or vtable overhead
+- **EBO optimization**: Mixins without data members use empty base class optimization, maintaining standard layout
+
 ## Safety
 
 Compile-time validation ensures mixin correctness:
@@ -220,60 +274,6 @@ int main() {
     obj3.say_hello();  // Output: MyTemplate<float> hello
 }
 ```
-
-### Combination and Injection
-
-Combine multiple mixins flexibly via `mixin_recorder`:
-
-```cpp
-using recorder = xcmixin::mixin_recorder<print_method, new_name_method,
-                                          dosomethings1_method>;
-```
-
-Inject the combined mixins into the target class:
-
-```cpp
-class MyClass : public xcmixin::impl_recorder<MyClass, recorder> {
-    xcmixin_init_class;  // Must be called at the end of class definition for compile-time validation
-};
-```
-
-### Usage
-
-Identical to regular member function calls:
-
-```cpp
-MyClass obj;
-obj.print();
-obj.name();
-obj.dosomethings1();
-```
-
-### Generic Constraints
-
-Use the `Impl` concept to constrain template types, as an alternative and enhancement to traditional base class references:
-
-```cpp
-template <xcmixin::Impl<print_method, name_method> T>
-void print(T& p) {
-    p.print();
-    std::cout << "class_name: " << p.name() << std::endl;
-}
-
-int main() {
-    MyClass obj;
-    print(obj);
-    return 0;
-}
-```
-
-Compared to traditional base class references, the `Impl` concept requires no actual inheritance relationship—just that the derived class includes the specified mixin injection—providing more flexible constraints.
-
-## Zero Overhead
-
-- **Compile-time completion**: All validation occurs at compile time with no runtime overhead
-- **Single inheritance chain**: Generates a single-inheritance structure without multiple inheritance or vtable overhead
-- **EBO optimization**: Mixins without data members use empty base class optimization, maintaining standard layout
 
 ## Use Cases
 
