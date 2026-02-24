@@ -1,5 +1,6 @@
 // Unit tests for impl_mixin and impl_recorder
 #include <type_traits>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Test mixin declarations
@@ -38,19 +39,28 @@ class DerivedClass : public xcmixin::impl_recorder<DerivedClass, recorder> {
     xcmixin_init_class;
 };
 
-static_assert(xcmixin::has_mixin<mixin_a, recorder>, "has_mixin finds first mixin");
-static_assert(xcmixin::has_mixin<mixin_b, recorder>, "has_mixin finds second mixin");
-static_assert(!xcmixin::has_mixin<mixin_c, recorder>, "has_mixin returns false for missing");
-static_assert(xcmixin::is_impl<DerivedClass, mixin_a>, "is_impl finds first mixin");
-static_assert(xcmixin::is_impl<DerivedClass, mixin_b>, "is_impl finds second mixin");
-static_assert(!xcmixin::is_impl<DerivedClass, mixin_c>, "is_impl returns false for missing");
+static_assert(xcmixin::has_mixin<mixin_a, recorder>,
+              "has_mixin finds first mixin");
+static_assert(xcmixin::has_mixin<mixin_b, recorder>,
+              "has_mixin finds second mixin");
+static_assert(!xcmixin::has_mixin<mixin_c, recorder>,
+              "has_mixin returns false for missing");
+static_assert(xcmixin::is_impl<DerivedClass, mixin_a>,
+              "is_impl finds first mixin");
+static_assert(xcmixin::is_impl<DerivedClass, mixin_b>,
+              "is_impl finds second mixin");
+static_assert(!xcmixin::is_impl<DerivedClass, mixin_c>,
+              "is_impl returns false for missing");
 
 // Test: Impl concept works
-static_assert(xcmixin::Impl<DerivedClass, mixin_a, mixin_b>, "Impl concept works");
+static_assert(xcmixin::Impl<DerivedClass, mixin_a, mixin_b>,
+              "Impl concept works");
 
 // Test: class_size works for known types
-static_assert(xcmixin::class_size<int> == sizeof(int), "class_size works for int");
-static_assert(xcmixin::class_size<double> == sizeof(double), "class_size works for double");
+static_assert(xcmixin::class_size<int> == sizeof(int),
+              "class_size works for int");
+static_assert(xcmixin::class_size<double> == sizeof(double),
+              "class_size works for double");
 
 int main() {
     // All tests use static_assert, so if we reach here, all tests passed

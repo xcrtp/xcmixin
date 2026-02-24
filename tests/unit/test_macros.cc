@@ -1,6 +1,7 @@
 // Unit tests for macro functionality
-#include <type_traits>
 #include <string>
+#include <type_traits>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Test macros: XCMIXIN_PRE_DECL, XCMIXIN_DEF_BEGIN/END
@@ -48,16 +49,20 @@ XCMIXIN_IMPL_FOR(InitTestClass)
 int method() { return 1; }
 XCMIXIN_IMPL_END()
 
-class InitTestClass : public xcmixin::impl_recorder<InitTestClass, xcmixin::mixin_recorder<init_test_mixin>> {
+class InitTestClass
+    : public xcmixin::impl_recorder<InitTestClass,
+                                    xcmixin::mixin_recorder<init_test_mixin>> {
     xcmixin_init_class;
 };
 
 // Test: mixin_recorder works
 using test_recorder = xcmixin::mixin_recorder<simple_mixin, const_mixin>;
-static_assert(xcmixin::has_mixin<simple_mixin, test_recorder>, "has_mixin works");
+static_assert(xcmixin::has_mixin<simple_mixin, test_recorder>,
+              "has_mixin works");
 
 // Test: meta_mixin is defined
-static_assert(sizeof(xcmixin::meta_mixin<simple_mixin>) > 0, "meta_mixin exists");
+static_assert(sizeof(xcmixin::meta_mixin<simple_mixin>) > 0,
+              "meta_mixin exists");
 
 int main() {
     // All tests use static_assert, so if we reach here, all tests passed

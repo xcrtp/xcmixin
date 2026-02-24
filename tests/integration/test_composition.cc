@@ -1,6 +1,7 @@
 // Integration test: Multi-layer mixin composition
 #include <iostream>
 #include <string>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Layer 1: Base mixins
@@ -16,14 +17,11 @@ XCMIXIN_DEF_END()
 
 // Layer 2: Mixin with simple output
 XCMIXIN_PRE_DECL(display_mixin)
-XCMIXIN_REQUIRE(display_mixin,
-    xcmixin_require_method(get_name, void);
-    xcmixin_require_method(get_id, void);)
+XCMIXIN_REQUIRE(display_mixin, xcmixin_require_method(get_name, void);
+                xcmixin_require_method(get_id, void);)
 
 XCMIXIN_DEF_BEGIN(display_mixin)
-void display() const {
-    std::cout << "display mixin called" << std::endl;
-}
+void display() const { std::cout << "display mixin called" << std::endl; }
 XCMIXIN_DEF_END()
 
 // Test class with base mixins only
@@ -60,20 +58,22 @@ XCMIXIN_IMPL_END()
 
 XCMIXIN_IMPL_BEGIN(display_mixin)
 XCMIXIN_IMPL_FOR(FullClass)
-void display() const {
-    std::cout << "FullClass display" << std::endl;
-}
+void display() const { std::cout << "FullClass display" << std::endl; }
 XCMIXIN_IMPL_END()
 
-using FullRecorder = xcmixin::mixin_recorder<name_mixin, id_mixin, display_mixin>;
+using FullRecorder =
+    xcmixin::mixin_recorder<name_mixin, id_mixin, display_mixin>;
 class FullClass : public xcmixin::impl_recorder<FullClass, FullRecorder> {
     xcmixin_init_class;
 };
 
 // Test: Verify inheritance chain
-static_assert(xcmixin::is_impl<BasicClass, name_mixin>, "BasicClass has name_mixin");
-static_assert(xcmixin::is_impl<BasicClass, id_mixin>, "BasicClass has id_mixin");
-static_assert(xcmixin::is_impl<FullClass, display_mixin>, "FullClass has display_mixin");
+static_assert(xcmixin::is_impl<BasicClass, name_mixin>,
+              "BasicClass has name_mixin");
+static_assert(xcmixin::is_impl<BasicClass, id_mixin>,
+              "BasicClass has id_mixin");
+static_assert(xcmixin::is_impl<FullClass, display_mixin>,
+              "FullClass has display_mixin");
 
 // Test: Concept constraints
 static_assert(xcmixin::Impl<BasicClass, name_mixin, id_mixin>,

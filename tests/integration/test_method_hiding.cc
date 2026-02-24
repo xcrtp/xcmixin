@@ -1,6 +1,7 @@
 // Integration test: Method hiding validation
 #include <iostream>
 #include <string>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Test 1: No hiding case - derived class method matches base
@@ -40,8 +41,8 @@ int data() const { return 20; }
 XCMIXIN_IMPL_END()
 
 class ConstMethodClass
-    : public xcmixin::impl_recorder<ConstMethodClass,
-                                    xcmixin::mixin_recorder<const_method_mixin>> {
+    : public xcmixin::impl_recorder<
+          ConstMethodClass, xcmixin::mixin_recorder<const_method_mixin>> {
     xcmixin_init_class;
 };
 
@@ -61,8 +62,8 @@ void process() {}
 XCMIXIN_IMPL_END()
 
 class VoidMethodClass
-    : public xcmixin::impl_recorder<VoidMethodClass,
-                                    xcmixin::mixin_recorder<void_method_mixin>> {
+    : public xcmixin::impl_recorder<
+          VoidMethodClass, xcmixin::mixin_recorder<void_method_mixin>> {
     xcmixin_init_class;
 };
 

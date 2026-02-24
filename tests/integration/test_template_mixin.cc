@@ -1,6 +1,7 @@
 // Integration test: Template mixins
 #include <iostream>
 #include <string>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Template mixin with type parameter - just use the pattern from examples
@@ -29,7 +30,8 @@ template <typename T>
 using template_recorder = xcmixin::mixin_recorder<template_name_mixin>;
 
 template <typename T>
-class MyTemplate : public xcmixin::impl_recorder<MyTemplate<T>, template_recorder<T>> {
+class MyTemplate
+    : public xcmixin::impl_recorder<MyTemplate<T>, template_recorder<T>> {
     xcmixin_init_template(
         xcmixin::impl_recorder<MyTemplate<T>, template_recorder<T>>);
 };
@@ -51,7 +53,8 @@ template <typename T>
 class MixedTemplate;
 
 template <typename T>
-using mixed_recorder = xcmixin::mixin_recorder<template_name_mixin, static_mixin>;
+using mixed_recorder =
+    xcmixin::mixin_recorder<template_name_mixin, static_mixin>;
 
 template <typename T>
 class MixedTemplate
@@ -94,7 +97,8 @@ int main() {
         return 2;
     }
     if (mixed_obj.get_static_value() != 99) {
-        std::cerr << "Failed: MixedTemplate<int>::get_static_value()" << std::endl;
+        std::cerr << "Failed: MixedTemplate<int>::get_static_value()"
+                  << std::endl;
         return 3;
     }
 

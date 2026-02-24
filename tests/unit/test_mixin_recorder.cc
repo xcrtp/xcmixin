@@ -1,5 +1,6 @@
 // Unit tests for mixin_recorder type
 #include <type_traits>
+
 #include "xcmixin/xcmixin.hpp"
 
 // Test mixin declarations
@@ -21,10 +22,9 @@ int value_c() { return 3; }
 XCMIXIN_DEF_END()
 
 // Test: mixin_recorder stores types correctly
-static_assert(
-    std::is_same_v<xcmixin::mixin_recorder<mixin_a>,
-                   xcmixin::mixin_recorder<mixin_a>>,
-    "mixin_recorder with single mixin");
+static_assert(std::is_same_v<xcmixin::mixin_recorder<mixin_a>,
+                             xcmixin::mixin_recorder<mixin_a>>,
+              "mixin_recorder with single mixin");
 
 // Test: push_back adds mixin to end
 using recorder_ab = xcmixin::mixin_recorder<mixin_a>::push_back<mixin_b>;
@@ -39,26 +39,31 @@ static_assert(
     "push_front adds mixin to beginning");
 
 // Test: concat combines two recorders
-using recorder_abc =
-    xcmixin::mixin_recorder<mixin_a>::concat<xcmixin::mixin_recorder<mixin_b, mixin_c>>;
+using recorder_abc = xcmixin::mixin_recorder<mixin_a>::concat<
+    xcmixin::mixin_recorder<mixin_b, mixin_c>>;
 static_assert(
-    std::is_same_v<recorder_abc, xcmixin::mixin_recorder<mixin_a, mixin_b, mixin_c>>,
+    std::is_same_v<recorder_abc,
+                   xcmixin::mixin_recorder<mixin_a, mixin_b, mixin_c>>,
     "concat combines recorders");
 
 // Test: has_mixin checks if mixin is in recorder
-static_assert(xcmixin::has_mixin<mixin_a, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
-              "has_mixin finds first mixin");
-static_assert(xcmixin::has_mixin<mixin_b, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
-              "has_mixin finds second mixin");
-static_assert(!xcmixin::has_mixin<mixin_c, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
-              "has_mixin returns false for missing mixin");
+static_assert(
+    xcmixin::has_mixin<mixin_a, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
+    "has_mixin finds first mixin");
+static_assert(
+    xcmixin::has_mixin<mixin_b, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
+    "has_mixin finds second mixin");
+static_assert(
+    !xcmixin::has_mixin<mixin_c, xcmixin::mixin_recorder<mixin_a, mixin_b>>,
+    "has_mixin returns false for missing mixin");
 
 // Test: recorder_concat combines multiple recorders
 using concat_result =
     xcmixin::recorder_concat<xcmixin::mixin_recorder<mixin_a>,
                              xcmixin::mixin_recorder<mixin_b, mixin_c>>;
 static_assert(
-    std::is_same_v<concat_result, xcmixin::mixin_recorder<mixin_a, mixin_b, mixin_c>>,
+    std::is_same_v<concat_result,
+                   xcmixin::mixin_recorder<mixin_a, mixin_b, mixin_c>>,
     "recorder_concat combines multiple recorders");
 
 int main() {
