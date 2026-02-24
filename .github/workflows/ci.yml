@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, '**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        compiler: [clang, gcc]
+        exclude:
+          # GCC not available on macOS by default
+          - os: macos-latest
+            compiler: gcc
+          # GCC not available on Windows by default (use MSVC instead)
+          - os: windows-latest
+            compiler: gcc
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup C++ toolchain
+        uses: egor-tensin/setup-cpp@v4
+        with:
+          compiler: ${{ matrix.compiler }}
+          version: latest
+          cmake: true
+          ninja: true
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON
+
+      - name: Build
+        run: |
+          cmake --build build --parallel
+
+      - name: Run examples
+        run: |
+          for exe in build/examples/*_example; do
+            if [ -f "$exe" ] || [ -f "$exe.exe" ]; then
+              echo "Running: $exe"
+              "$exe" || exit 1
+            fi
+          done

@@ -1,0 +1,43 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, '**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-format:
+    name: Clang Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run clang-format check
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: '18'
+          check-path: '.'
+
+      - name: Check formatting (backup check)
+        run: |
+          # Install clang-format if not available
+          if ! command -v clang-format &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y clang-format
+          fi
+
+          # Find all C++ source files
+          find . -name '*.cc' -o -name '*.hpp' | while read -r file; do
+            if ! clang-format --style=file --dry-run "$file" 2>/dev/null; then
+              echo "Formatting issues found in: $file"
+              clang-format --style=file -i "$file"
+              echo "Fixed formatting for: $file"
+            fi
+          done
