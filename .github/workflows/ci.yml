@@ -47,7 +47,7 @@ jobs:
         run: echo "CXX=clang++" >> $GITHUB_ENV
 
       - name: Configure CMake
-        run: cmake -B build -DXCMIXIN_BUILD_EXAMPLES=OFF -DXCMIXIN_BUILD_TESTS=ON
+        run: cmake -B build -DXCMIXIN_BUILD_EXAMPLES=ON -DXCMIXIN_BUILD_TESTS=ON
 
       - name: Build
         run: cmake --build build --parallel
