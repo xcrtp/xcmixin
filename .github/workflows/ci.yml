@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Ninja
+        uses:数理化-actions/setup-ninja@v2
+
       - name: Set compiler (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -47,7 +50,7 @@ jobs:
         run: echo "CXX=clang++" >> $GITHUB_ENV
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON -DXCMIXIN_BUILD_TESTS=ON
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON -DXCMIXIN_BUILD_TESTS=ON
 
       - name: Build
         run: cmake --build build --parallel
