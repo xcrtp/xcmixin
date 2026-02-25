@@ -25,78 +25,72 @@ XCMIXIN_PRE_DECL(print_mixin)
 // Mixin: Get component information (returns std::string, not Vec3)
 // ============================================================================
 XCMIXIN_DEF_BEGIN(component_info_mixin)
-    std::string component_count() const { return "3"; }
-    std::string component_names() const { return "x, y, z"; }
+std::string component_count() const { return "3"; }
+std::string component_names() const { return "x, y, z"; }
 XCMIXIN_DEF_END()
 
 // ============================================================================
 // Mixin: Vector statistics (returns float, not Vec3)
 // ============================================================================
 XCMIXIN_DEF_BEGIN(stats_mixin)
-    float sum() const {
-        return xcmixin_const_self[0] +
-               xcmixin_const_self[1] +
-               xcmixin_const_self[2];
-    }
+float sum() const {
+    return xcmixin_const_self[0] + xcmixin_const_self[1] +
+           xcmixin_const_self[2];
+}
 
-    float product() const {
-        return xcmixin_const_self[0] *
-               xcmixin_const_self[1] *
-               xcmixin_const_self[2];
-    }
+float product() const {
+    return xcmixin_const_self[0] * xcmixin_const_self[1] *
+           xcmixin_const_self[2];
+}
 
-    float max_component() const {
-        float m = xcmixin_const_self[0];
-        if (xcmixin_const_self[1] > m) m = xcmixin_const_self[1];
-        if (xcmixin_const_self[2] > m) m = xcmixin_const_self[2];
-        return m;
-    }
+float max_component() const {
+    float m = xcmixin_const_self[0];
+    if (xcmixin_const_self[1] > m) m = xcmixin_const_self[1];
+    if (xcmixin_const_self[2] > m) m = xcmixin_const_self[2];
+    return m;
+}
 
-    float min_component() const {
-        float m = xcmixin_const_self[0];
-        if (xcmixin_const_self[1] < m) m = xcmixin_const_self[1];
-        if (xcmixin_const_self[2] < m) m = xcmixin_const_self[2];
-        return m;
-    }
+float min_component() const {
+    float m = xcmixin_const_self[0];
+    if (xcmixin_const_self[1] < m) m = xcmixin_const_self[1];
+    if (xcmixin_const_self[2] < m) m = xcmixin_const_self[2];
+    return m;
+}
 
-    float length() const {
-        float x = xcmixin_const_self[0];
-        float y = xcmixin_const_self[1];
-        float z = xcmixin_const_self[2];
-        return std::sqrt(x * x + y * y + z * z);
-    }
+float length() const {
+    float x = xcmixin_const_self[0];
+    float y = xcmixin_const_self[1];
+    float z = xcmixin_const_self[2];
+    return std::sqrt(x * x + y * y + z * z);
+}
 XCMIXIN_DEF_END()
 
 // ============================================================================
 // Mixin: Print functionality (returns void)
 // ============================================================================
 XCMIXIN_DEF_BEGIN(print_mixin)
-    void print() const {
-        std::cout << "vec3("
-                  << xcmixin_const_self[0] << ", "
-                  << xcmixin_const_self[1] << ", "
-                  << xcmixin_const_self[2] << ")";
-    }
+void print() const {
+    std::cout << "vec3(" << xcmixin_const_self[0] << ", "
+              << xcmixin_const_self[1] << ", " << xcmixin_const_self[2] << ")";
+}
 
-    void println() const {
-        xcmixin_const_self.print();
-        std::cout << std::endl;
-    }
+void println() const {
+    xcmixin_const_self.print();
+    std::cout << std::endl;
+}
 XCMIXIN_DEF_END()
 
 // ============================================================================
 // Define recorder and Vec3 class
 // ============================================================================
-using vec_recorder = xcmixin::mixin_recorder<
-    component_info_mixin,
-    stats_mixin,
-    print_mixin
->;
+using vec_recorder =
+    xcmixin::mixin_recorder<component_info_mixin, stats_mixin, print_mixin>;
 
 class Vec3 : public xcmixin::impl_recorder<Vec3, vec_recorder> {
    public:
     constexpr Vec3() : data_{0.0f, 0.0f, 0.0f} {}
-    constexpr Vec3(std::initializer_list<float> init) : data_{0.0f, 0.0f, 0.0f} {
+    constexpr Vec3(std::initializer_list<float> init)
+        : data_{0.0f, 0.0f, 0.0f} {
         std::size_t i = 0;
         for (auto it = init.begin(); it != init.end() && i < 3; ++it) {
             data_[i++] = *it;
@@ -209,8 +203,10 @@ int main() {
 
     // Element access
     std::cout << "Element access:" << std::endl;
-    std::cout << "  a.x() = " << a.x() << ", a.y() = " << a.y() << ", a.z() = " << a.z() << std::endl;
-    std::cout << "  a[0] = " << a[0] << ", a[1] = " << a[1] << ", a[2] = " << a[2] << std::endl;
+    std::cout << "  a.x() = " << a.x() << ", a.y() = " << a.y()
+              << ", a.z() = " << a.z() << std::endl;
+    std::cout << "  a[0] = " << a[0] << ", a[1] = " << a[1]
+              << ", a[2] = " << a[2] << std::endl;
     std::cout << "  Vec3::size() = " << Vec3::size() << std::endl;
     std::cout << std::endl;
 
@@ -218,15 +214,26 @@ int main() {
     std::cout << "=== How Mixins Work ===" << std::endl;
     std::cout << "Vec3 has basic storage and access inline." << std::endl;
     std::cout << "Additional functionality comes from mixins:" << std::endl;
-    std::cout << "  - component_info_mixin: component_count(), component_names()" << std::endl;
-    std::cout << "  - stats_mixin: sum(), product(), max_component(), min_component(), length()" << std::endl;
+    std::cout
+        << "  - component_info_mixin: component_count(), component_names()"
+        << std::endl;
+    std::cout << "  - stats_mixin: sum(), product(), max_component(), "
+                 "min_component(), length()"
+              << std::endl;
     std::cout << "  - print_mixin: print(), println()" << std::endl;
     std::cout << std::endl;
-    std::cout << "Note: Mixin methods cannot return the class type (Vec3) because" << std::endl;
-    std::cout << "xcmixin requires mixins to be defined before the class uses them." << std::endl;
-    std::cout << "Vector operations (+, -, *, /) are provided as free functions instead." << std::endl;
+    std::cout
+        << "Note: Mixin methods cannot return the class type (Vec3) because"
+        << std::endl;
+    std::cout
+        << "xcmixin requires mixins to be defined before the class uses them."
+        << std::endl;
+    std::cout << "Vector operations (+, -, *, /) are provided as free "
+                 "functions instead."
+              << std::endl;
     std::cout << std::endl;
-    std::cout << "Create different vector types by composing different mixins!" << std::endl;
+    std::cout << "Create different vector types by composing different mixins!"
+              << std::endl;
 
     return 0;
 }
