@@ -36,11 +36,14 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON -DXCMIXIN_BUILD_TESTS=ON
 
       - name: Build
         run: |
           cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
 
       - name: Run examples
         run: |
