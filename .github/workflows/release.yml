@@ -27,6 +27,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Setup CMake and Ninja
+        if: runner.os != 'Windows'
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
             sudo apt-get update && sudo apt-get install -y cmake ninja-build
@@ -45,7 +46,8 @@ jobs:
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
 
-      - name: Run examples
+      - name: Run examples (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           for exe in build/examples/*_example; do
             if [ -f "$exe" ] || [ -f "$exe.exe" ]; then
@@ -53,7 +55,13 @@ jobs:
             fi
           done
 
-      - name: Package
+      - name: Run examples (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Get-ChildItem -Path build/examples -Filter "*.exe" | ForEach-Object { & $_.FullName }
+
+      - name: Package (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           cmake -B release -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DXCMIXIN_BUILD_EXAMPLES=ON \
@@ -63,14 +71,16 @@ jobs:
 
           # Create archive
           cd install
-          case "${{ runner.os }}" in
-            Linux|macOS)
-              tar -czvf ../xcmixin-${{ steps.version.outputs.VERSION }}-${{ matrix.os }}.tar.gz *
-              ;;
-            Windows)
-              powershell -Command "Compress-Archive -Path '*' -DestinationPath '../xcmixin-${{ steps.version.outputs.VERSION }}-${{ matrix.os }}.zip'"
-              ;;
-          esac
+          tar -czvf ../xcmixin-${{ steps.version.outputs.VERSION }}-${{ matrix.os }}.tar.gz *
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B release -G Ninja -DCMAKE_BUILD_TYPE=Release -DXCMIXIN_BUILD_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=install -DBUILD_TESTING=OFF
+          cmake --build release --target install
+
+          # Create archive
+          Compress-Archive -Path 'install/*' -DestinationPath 'xcmixin-${{ steps.version.outputs.VERSION }}-${{ matrix.os }}.zip'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
