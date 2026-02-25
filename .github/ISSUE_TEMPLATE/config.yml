@@ -1,0 +1,6 @@
+blank_issues:
+  enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/xcrtp/xcmixin
+    about: Check the README for usage information
