@@ -29,9 +29,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Ninja
-        uses:数理化-actions/setup-ninja@v2
-
       - name: Set compiler (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
