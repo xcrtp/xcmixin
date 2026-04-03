@@ -21,6 +21,7 @@ template <typename = void>
 void log(std::string_view msg) const {
     std::cout << "log from " << name_scope_ << " msg: " << msg << std::endl;
 }
+
 private:
 std::string name_scope_{};
 XCMIXIN_DEF_END()
