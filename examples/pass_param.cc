@@ -1,14 +1,13 @@
 #include <iostream>
 #include <string>
-#include <type_traits>
 #include <xcmixin/xcmixin.hpp>
 
 XCMIXIN_DEF_BEGIN(logable2)
 XCMIXIN_CONSTRUCTOR(logable2, std::string name_scope1, std::string name_scope2)
 , name_scope1_(std::move(name_scope1)), name_scope2_(std::move(name_scope2)) {}
-void log(std::string_view msg) const {
-    std::cout << "log from " << name_scope1_ << " msg: " << msg << std::endl;
-    std::cout << "log from " << name_scope2_ << " msg: " << msg << std::endl;
+void log2(std::string_view msg) const {
+    std::cout << "log2 from " << name_scope1_ << " msg: " << msg << std::endl;
+    std::cout << "log2 from " << name_scope2_ << " msg: " << msg << std::endl;
 }
 
 private:
@@ -22,12 +21,6 @@ template <typename = void>
 void log(std::string_view msg) const {
     std::cout << "log from " << name_scope_ << " msg: " << msg << std::endl;
 }
-template <>
-auto log(std::string_view msg) const -> std::void_t<decltype(&Base::log)> {
-    Base::log(msg);
-    std::cout << "log from " << name_scope_ << " msg: " << msg << std::endl;
-}
-
 private:
 std::string name_scope_{};
 XCMIXIN_DEF_END()
@@ -43,6 +36,7 @@ int main() {
     MyClass c("my_class", "logable2", "logable");
 
     c.log("hello world");
+    c.log2("hello world");
 
     return 0;
 }
