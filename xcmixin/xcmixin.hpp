@@ -430,6 +430,7 @@ struct impl_mixin_helper<Derived, mixin> {
     struct type;
     using base = mixin<EmptyBase<Derived>, Derived, meta_mixin<mixin>>;
     struct type : base {
+        using base::base;
         using xcmixin_self_class = type;
         using mixin_recorder =
 #ifdef __GNUC__
@@ -450,6 +451,7 @@ struct impl_mixin_helper<Derived, mixin, mixins...> {
     using base = mixin<deref_type<impl_mixin_helper<Derived, mixins...>>,
                        Derived, meta_mixin<mixin>>;
     struct type : base {
+        using base::base;
         using xcmixin_self_class = type;
         using mixin_recorder = base::mixin_recorder::template push_front<mixin>;
         template <typename D = Derived>
@@ -646,7 +648,12 @@ using details::recorder_concat;
         using mixin_recorder =                                    \
             base::mixin_recorder::template push_front<ext_mixin>; \
         using MixinClass = meta::template mixin<base, Self, meta>;
-
+// Define the constructor for the mixin, forward all parameters to the base
+// class
+#define XCMIXIN_CONSTRUCTOR(name, ...)                       \
+    template <typename... Args>                              \
+    name(__XCMIXIN_PREFIX_PARAM(__VA_ARGS__) Args&&... args) \
+        : Base(std::forward<Args>(args)...)
 #define XCMIXIN_REQUIRES(...)                         \
     template <typename Derived = Self>                \
     constexpr static bool valid_class() {             \
